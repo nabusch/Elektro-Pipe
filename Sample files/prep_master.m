@@ -4,6 +4,9 @@ close all;
 addpath(genpath('~/Code/Elektro-Pipe/'));
 addpath(genpath('/data/home/nbusch/Matlab/Toolboxes/eeglab13_6_5b/'));
 
+%un-shadow the fileio in WM-utilities
+tmp = which('16_Bit_triggers/pop_fileio.m');
+addpath(genpath(tmp(1:regexp(tmp,'pop_fileio.m')-1)));
 
 EP.cfg_file = '/data2/Niko/AlphaIcon/Analysis/getcfg.m';
 EP.st_file  = '/data2/Niko/AlphaIcon/Analysis/SubjectsTable.xlsx';

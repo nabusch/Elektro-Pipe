@@ -48,7 +48,11 @@ for isub = 1:length(who_idx)
     % ---------------------------------------------------------------------
     % If cfg file specifies channels for interpolation for this subject,
     % interpolate them now.
-    interp_chans = str2num(S.interp_chans{who_idx(isub)});
+    if iscell(S.interp_chans)
+        interp_chans = str2num(S.interp_chans{who_idx(isub)});
+    else
+        interp_chans = [];
+    end
     if isempty(interp_chans) | isnan(interp_chans)
         fprintf('No channels to interpolate.\n')
     else
