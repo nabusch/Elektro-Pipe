@@ -103,7 +103,7 @@ for isub = 1:length(who_idx)
     EEG = eegh(com,EEG);
     
     EEG = pop_editset(EEG, 'setname', [CFG.subject_name '_CleanBeforeICA.set']);
-    EEG = pop_saveset( EEG, [CFG.subject_name '_tCleanBeforeICA.set'] , CFG.dir_eeg);
+    EEG = pop_saveset( EEG, [CFG.subject_name '_CleanBeforeICA.set'] , CFG.dir_eeg);
     
     S.has_prepICA(who_idx(isub)) = 1;
     writetable(S, EP.st_file)
