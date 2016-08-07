@@ -28,7 +28,7 @@ function [nb,channame,strnames] = chnb(channame, varargin)
 %                   structure exists in the caller workspace.
 %   names         - Channel names, cell array of strings.
 %   strnames      - Channel names, one line character array.
-error(narginchk(1,2,nargin));
+narginchk(1,2);
 if nargin == 2
     labels = varargin{1};
 else

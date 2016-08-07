@@ -58,6 +58,7 @@ if any(rejE(:))
             [trials interp] = rejE2struct(rejE);
             EEG.selectiveinterp = interp;
             EEG = eeg_selectiveinterp(EEG,interp);
+%             EEG = eeg_selectiveinterp(EEG);
             % in the case when only EEG was given as input
             % update rejmanual and history to document what has just been
             % done...

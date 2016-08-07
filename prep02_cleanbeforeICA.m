@@ -103,4 +103,5 @@ for isub = 1:length(who_idx)
     
     S.has_prepICA(who_idx(isub)) = 1;
     writetable(S, EP.st_file)
+    
 end
