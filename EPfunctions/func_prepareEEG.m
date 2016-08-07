@@ -135,14 +135,24 @@ end
 
 % Optional: remove all events except the target events from the EEG
 % structure.
-%[EEG] = pop_selectevent( EEG, 'type', cfg.trig_target , ...
+%[EEG] = pop_selectevent( EEG, 'type', [cfg.trig_target,cfg.trig_omit] , ...
 %    'deleteevents','on','deleteepochs','on','invertepochs','off');
 
 [EEG, ~, com] = pop_epoch( EEG, cellstr(num2str(cfg.trig_target')), [cfg.epoch_tmin cfg.epoch_tmax], ...
     'newname', 'BDF file epochs', 'epochinfo', 'yes');
 EEG = eegh(com, EEG);
 
-
+% Optional: remove all epochs containing triggers specified in CFG.trig_omit
+if ~isempty(cfg.trig_omit)
+    rejidx = zeros(1,length(EEG.epoch));
+    for i=1:length(EEG.epoch)
+        if sum(ismember(cfg.trig_omit,[EEG.epoch(i).eventtype{:}]))>=1 || ismember(i,[cfg.trial_omit])
+            rejidx(i) =  1;
+        end
+    end
+    EEG = pop_rejepoch(EEG, rejidx, 0);
+    EEG = eegh(com, EEG);
+end
 % --------------------------------------------------------------
 % Remove 50Hz line noise using Tim Mullen's cleanline.
 % --------------------------------------------------------------

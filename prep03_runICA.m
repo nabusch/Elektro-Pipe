@@ -81,7 +81,7 @@ for isub = 1:length(who_idx)
     % Save data.
     % --------------------------------------------------------------
     EEG = pop_editset(EEG, 'setname', [CFG.subject_name '_ICA.set']);
-    EEG = pop_saveset( EEG, [CFG.subject_name '_ICA.set'] , CFG.dir_main);
+    EEG = pop_saveset( EEG, [CFG.subject_name '_ICA.set'] , CFG.dir_eeg);
         
     S.has_ICA(who_idx(isub)) = 1;
     writetable(S, EP.st_file)

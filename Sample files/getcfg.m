@@ -24,9 +24,17 @@ CFG.epoch_tmax =  0.500;
 
 % Time limits of epochs.
 CFG.bsl_t_min = CFG.epoch_tmin;
-CFG.bsl_t_max = 0;
- 
+CFG.bsl_t_max = 0; 
 
+% If you already removed faulty trials (e.g., when a subject looked away) from your logfile,
+% then the amount of trials in the logfile does not match the amount of trials in the EEGdata.
+% If you sent special triggers that mark faulty trials in the EEGdata, enter them here to remove
+% all trials containing these triggers from your EEGdata. The result should be that EEGdata and
+% Logfile match again.
+CFG.trig_omit = [];
+% you may also want to delete just a few specific trials; e.g., the training
+% trials at the beginning
+CFG.trial_omit  = [];
 %% Parameters for data import and preprocessing.
 
 % Indices of channels that contain data, including external electrodes, but not bipolar channels like VEOG, HEOG.
