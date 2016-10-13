@@ -1,18 +1,20 @@
-clear all;
+clear;
 close all;
 
 addpath(genpath('~/Code/Elektro-Pipe/'));
 addpath(genpath('/data/home/nbusch/Matlab/Toolboxes/eeglab13_6_5b/'));
 
-%un-shadow the fileio in WM-utilities
-tmp = which('16_Bit_triggers/pop_fileio.m');
-addpath(genpath(tmp(1:regexp(tmp,'pop_fileio.m')-1)));
+%un-shadow the fileio in WM-utilities. This is really specific to th
+%eprocedures in our lab at a special moment in history, so probably nothing
+%to worry about.
+% tmp = which('16_Bit_triggers/pop_fileio.m');
+% addpath(genpath(tmp(1:regexp(tmp,'pop_fileio.m')-1)));
 
 EP.cfg_file = '/data2/Niko/AlphaIcon/Analysis/getcfg.m';
 EP.st_file  = '/data2/Niko/AlphaIcon/Analysis/SubjectsTable.xlsx';
 
 % EP.who = 1; % Single numerical index.
-EP.who = [1]; % Vector of numerical indices.
+EP.who = [1:10]; % Vector of numerical indices.
 % EP.who = 'AI01'; % Single string.
 % EP.who = {'Name', {'AI01', 'AI02'}}; % One pair of column name and requested values.
 % EP.who = {'Name', {'AI01', 'AI03'}; 'Include', 1; 'has_import', 0}; % Multiple columns and values. Only subjects fullfilling all criteria are included.
