@@ -1,4 +1,4 @@
-function who_idx = get_subjects(S, who)
+function who_idx = get_subjects(EP)
 % helper function to decode which subjects are to be processed.
 
 % EP.who = 1; % Single numerical index.
@@ -7,31 +7,32 @@ function who_idx = get_subjects(S, who)
 % EP.who = {'Pseudonym', {'AI01', 'AI02'}}; % One pair of column name and requested values.
 % EP.who = {'Pseudonym', {'AI01', 'AI03'}; 'Include', 1; 'has_import', 0}; % Multiple columns and values. Only subjects fullfilling all criteria are included.
 
-
-
-if isnumeric(who) % If who is just a numeric index.
-    who_idx = who;
+if isempty(EP.who)
+    who_idx = 1:height(EP.S);
+    
+elseif isnumeric(EP.who) % If who is just a numeric index.
+    who_idx = EP.who;
     
     
-elseif isstr(who) % If who is a single string.
-    names = S.Name;
-    who_idx = find(strcmp(who, names));
+elseif isstr(EP.who) % If who is a single string.
+    names = EP.S.Name;
+    who_idx = find(strcmp(EP.who, names));
     
     
-elseif iscell(who) % If who is a set of field names and values
+elseif iscell(EP.who) % If who is a set of field names and values
     
-    for ivar = 1:size(who,1)
+    for ivar = 1:size(EP.who,1)
         
-        req_varname = who{ivar,1}; %requested field name, e.g. Pseudonym or Include
-        req_values =  who{ivar,2}; % requested value, e.g. 'AI01' or 1.
+        req_varname = EP.who{ivar,1}; %requested field name, e.g. Pseudonym or Include
+        req_values =  EP.who{ivar,2}; % requested value, e.g. 'AI01' or 1.
         
-        subject_values = S.(req_varname);
+        subject_values = EP.S.(req_varname);
         
         if isnumeric(subject_values)
             subject_values(isnan(subject_values)) = 0;
         end
         
-        var_idx(ivar,:) = ismember(subject_values, req_values);
+        var_idx(ivar,:) = ismember(subject_values, req_values{:});
     end
     
     who_idx = find(all(var_idx, 1)); % select subjects who fullfill all criteria.
