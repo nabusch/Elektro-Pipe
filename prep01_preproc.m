@@ -4,6 +4,8 @@ function EEG = prep01_preproc(EP)
 [cfg_dir, cfg_name, ~] = fileparts(EP.cfg_file);
 [sub_dir, sub_name, ~] = fileparts(EP.cfg_file);
 
+
+
 addpath(sub_dir);
 addpath(cfg_dir);
 
