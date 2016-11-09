@@ -2,13 +2,13 @@
 clear; 
 close all;
 
-addpath('C:\Users\nbusch\Documents\Github\Elektro-Pipe\');
+addpath(genpath('~\Elektro-Pipe\'));
 
 % Add path to my experiment. This makes sure that when we use get_cfg and
 % get_design, we load it from the top-most path. This is importnat because
 % many experiments and also the Samples folder of the EP code folder
 % contain files with this name.
-EP.dir_experiment = 'C:\Users\nbusch\Documents\Corenats\';
+EP.dir_experiment = ''; %e.g., '/data/ExperimentName/
 
 %% Define the EP structure (EP for Elektro Pipe). 
 % REQUIRED INPUTS:

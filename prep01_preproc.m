@@ -9,9 +9,9 @@ addpath(cfg_dir);
 
 S = readtable(EP.st_file);
 
-who_idx = get_subjects(S, EP.who);
+who_idx = get_subjects(EP);
 
-
+EP.S = S;
 for isub = 1:length(who_idx)
     
     EEG = [];
@@ -38,7 +38,7 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     bdfname = [CFG.dir_raw CFG.subject_name '.bdf'];
     if ~exist(bdfname)
-        fprintf('%s Does not exists!\n', bdfname)
+        fprintf('%s Does not exist!\n', bdfname)
         return
     else
         fprintf('Importing %s\n', bdfname)
@@ -57,6 +57,10 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     EEG = func_importBehavior(EEG, CFG);   
 
+    % --------------------------------------------------------------
+    % Create quality plots
+    % --------------------------------------------------------------
+    func_qualityPlots(EEG,CFG);
     
     % --------------------------------------------------------------
     % Save data.

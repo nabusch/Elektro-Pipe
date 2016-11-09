@@ -21,7 +21,7 @@ load([cfg.dir_behavior cfg.subject_name '_Logfile.mat'])
 % Change this lines accordingly if your structure has a different name.
 Trials = Info.T;
 fields = fieldnames(Trials);
-rialsOut = [];
+TrialsOut = [];
 
 % Exclude trials where the eye tracker detected bad gaze.
 if isfield(Trials, 'badgaze')
@@ -68,7 +68,11 @@ for ievent = 1:length(EEG.event)
         
         % Check if the field in the log file is empty. If yes, fill with
         % arbitrary value.
+        try
         new_event_value = TrialsOut(thisepoch).(outfields{ifield});
+        catch ME
+            keyboard;
+        end
         if isempty(new_event_value)
             fillvalue = 666;
             fprintf('Empty event field found on trial %d in event field %s!\n', thisepoch, outfields{ifield});
