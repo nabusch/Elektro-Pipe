@@ -99,6 +99,22 @@ CFG.rej_thresh      = 500;
 CFG.rej_thresh_tmin = CFG.epoch_tmin;
 CFG.rej_thresh_tmax = CFG.epoch_tmax;
 
+%% Eyelink related input
+% Do you want to coregister eyelink eyetracking data?
+CFG.coregister_Eyelink = 0; %0=don't coregister
+% Do you want to use Eyetracking data instead of HEOG & VEOG for ICA?
+CFG.eye_ica            = 1;
+% Coregistration is done by using the first instance of the first value and
+% the last instance of the second value. Everything inbetween is downsampled
+% and interpolated. In our lab triggers from the parallel port are s
+CFG.eye_startEnd       = [];
+
+% After data has been coregistered, eyetracking data will be included in
+% the EEG struct. Do you want to keep the eyetracking-only files (ASCII &
+% mat)?
+CFG.eye_keepfiles      = [0 0];
+
+
 %% Parameters for ICA.
 CFG.ica_type = 'runica';
 CFG.ica_extended = 1; % Run extended infomax ICA?
