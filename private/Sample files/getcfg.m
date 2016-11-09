@@ -45,6 +45,10 @@ CFG.trial_omit  = [];
 % empty (default).
 CFG.trigger_device = []; % can be [],'lowbyte-VPixx' or 'highbyte-PC'
 
+% Did you use online-eyetracking to mark bad trials in your logfile?
+% specify the fieldname of the field in your logfile struct that contains
+% this information. Check func_importbehavior for more information.
+CFG.badgaze_fieldname = 'badgaze';
 %% Parameters for data import and preprocessing.
 
 % Indices of channels that contain data, including external electrodes, but not bipolar channels like VEOG, HEOG.

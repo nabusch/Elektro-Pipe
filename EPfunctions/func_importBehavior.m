@@ -24,8 +24,8 @@ fields = fieldnames(Trials);
 TrialsOut = [];
 
 % Exclude trials where the eye tracker detected bad gaze.
-if isfield(Trials, 'badgaze')
-    badtrials = [Trials.badgaze] == 1;
+if isfield(Trials, cfg.badgaze_fieldname)
+    badtrials = [Trials.(cfg.badgaze_fieldname)] == 1;
     Trials(badtrials) = [];
 end
 
