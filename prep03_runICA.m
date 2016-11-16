@@ -45,6 +45,12 @@ for isub = 1:length(who_idx)
     % (CFG.ica_ncomps>0).
     % --------------------------------------------------------------
     
+    %create a subfolder for the temporary binica files, in case binica is used
+    if strcmp(CFG.ica_type,'binica')
+        mkdir([CFG.dir_eeg filesep 'binica']);
+        cd([CFG.dir_eeg filesep 'binica']);
+    end
+    
     ncomps_sub = S.ica_ncomps(who_idx(isub));
     if ~isempty(ncomps_sub) & ~isnan(ncomps_sub)& ncomps_sub~=0
         fprintf('Subject-specific setting:\n');
@@ -77,6 +83,10 @@ for isub = 1:length(who_idx)
     
     EEG = eegh(com, EEG);
     
+    %in case binica has been used, cd back to the main folder
+    if strcmp(CFG.ica_type,'binica')
+        cd(CFG.dir_main);
+    end
     % --------------------------------------------------------------
     % Save data.
     % --------------------------------------------------------------

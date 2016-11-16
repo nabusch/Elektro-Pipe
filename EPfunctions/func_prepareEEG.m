@@ -6,7 +6,7 @@ EEG.data = double(EEG.data);
 
 
 % --------------------------------------------------------------
-% If replace_chans are defined for this subject, replace bad 
+% If replace_chans are defined for this subject, replace bad
 % channels now.
 % --------------------------------------------------------------
 
@@ -31,13 +31,13 @@ end
 % --------------------------------------------------------------
 % Delete unwanted channels and import channel locations.
 % --------------------------------------------------------------
-[EEG, com] = pop_select(EEG, 'channel', cfg.data_chans); 
+[EEG, com] = pop_select(EEG, 'channel', cfg.data_chans);
 EEG = eegh(com, EEG);
 
 %     The following step should be unnecessary if the data were recorded
 %     with a proper *.cfg file for the ActiView recording program. This cfg
 %     file should specifiy the channel label for every channel including
-%     external electrodes. 
+%     external electrodes.
 %     Note: command history is broken for this function - not written to
 %     eegh.
 %     EEG = pop_chanedit(EEG, 'changefield',{67 'labels' 'AFp9'}, 'changefield',{65 'type' 'EOG'});
@@ -51,10 +51,10 @@ if ~isempty(cfg.heog_chans)
         EEG.chanlocs(cfg.heog_chans(1)).labels, ...
         EEG.chanlocs(cfg.heog_chans(2)).labels)
     
-    iHEOG = EEG.nbchan + 1;    
+    iHEOG = EEG.nbchan + 1;
     EEG.nbchan = iHEOG;
     EEG.chanlocs(iHEOG) = EEG.chanlocs(end);
-    EEG.chanlocs(iHEOG).labels = 'HEOG';    
+    EEG.chanlocs(iHEOG).labels = 'HEOG';
     EEG.data(iHEOG,:) = EEG.data(cfg.heog_chans(1),:,:) - EEG.data(cfg.heog_chans(2),:,:);
 end
 
@@ -63,10 +63,10 @@ if ~isempty(cfg.veog_chans)
         EEG.chanlocs(cfg.veog_chans(1)).labels, ...
         EEG.chanlocs(cfg.veog_chans(2)).labels)
     
-    iVEOG = EEG.nbchan + 1;    
+    iVEOG = EEG.nbchan + 1;
     EEG.nbchan = iVEOG;
     EEG.chanlocs(iVEOG) = EEG.chanlocs(end);
-    EEG.chanlocs(iVEOG).labels = 'VEOG';    
+    EEG.chanlocs(iVEOG).labels = 'VEOG';
     EEG.data(iVEOG,:) = EEG.data(cfg.veog_chans(1),:,:) - EEG.data(cfg.veog_chans(2),:,:);
 end
 
@@ -82,7 +82,7 @@ if cfg.do_resampling
     [pathstr, ~, ~] = fileparts(which('resample.m'));
     rmpath([pathstr '/'])
     addpath([pathstr '/'])
-    [EEG, com] = pop_resample( EEG, cfg.new_sampling_rate); 
+    [EEG, com] = pop_resample( EEG, cfg.new_sampling_rate);
     EEG = eegh(com, EEG);
 end
 
@@ -129,7 +129,7 @@ else
 end
 
 %---------------------------------------------------------------
-% Optional: remove all events from a specific trigger device. 
+% Optional: remove all events from a specific trigger device.
 %---------------------------------------------------------------
 if isfield(EEG.event,'device') && ~isempty(cfg.trigger_device)
     fprintf('\nRemoving all event markers not sent by %s...\n',cfg.trigger_device);
@@ -181,7 +181,6 @@ end
 % Remove 50Hz line noise using Tim Mullen's cleanline.
 % --------------------------------------------------------------
 if cfg.do_cleanline
-    
     % FFT before cleanline
     [amps,  EEG.cleanline.freqs] = my_fft(EEG.data, 2, EEG.srate, EEG.pnts);
     EEG.cleanline.pow = mean(amps.^2, 3);
@@ -201,8 +200,10 @@ if cfg.do_cleanline
     [ampsc, EEG.cleanline.freqsc] = my_fft(EEG.data, 2, EEG.srate, EEG.pnts);
     EEG.cleanline.powc = mean(ampsc.^2, 3);
     
+    % Create figure in background
+    cleanline_qualityplot(EEG);
 end
-        
+
 
 % --------------------------------------------------------------
 % Detrend the data.
@@ -213,7 +214,6 @@ if cfg.do_detrend
     EEG = eeg_detrend(EEG);
     EEG = eegh('EEG = eeg_detrend(EEG);% https://github.com/widmann/erptools/blob/master/eeg_detrend.m', EEG);
 end
-
 
 
 % Convert back to single precision.

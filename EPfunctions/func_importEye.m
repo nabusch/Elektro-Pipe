@@ -42,6 +42,7 @@ function [ EEG ] = func_importEye(EEG, cfg)
 %----------------------------------------------
 % Preparations
 %----------------------------------------------
+set(0,'DefaultFigureVisible','off'); %create figure in background to print it later
 curEDF = [cfg.dir_raweye cfg.subject_name '.edf'];
 [~,~,~] = mkdir(cfg.dir_eye);
 existing_files = dir(cfg.dir_eye);
@@ -115,6 +116,11 @@ else
         delete([cfg.dir_eye cfg.subject_name '.mat']);
     end
 end
+
+%----------------------------------------------
+% Reactivate plotting
+%----------------------------------------------
+set(0,'DefaultFigureVisible','on')
 
 end
 

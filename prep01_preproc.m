@@ -60,8 +60,19 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Create quality plots
     % --------------------------------------------------------------
-    func_qualityPlots(EEG,CFG);
-    
+    fprintf('Creating a postscript file with plots of Cleanline and/or Eyelink-coregistration quality...\n');
+    if exist([CFG.dir_eeg CFG.subject_name '_QualityPlots' '.ps'],'file')
+        fprintf('Found an old version of ''%s''. Will overwrite it now.\n',[CFG.subject_name '_QualityPlots' '.ps']);
+        delete([CFG.dir_eeg CFG.subject_name '_QualityPlots' '.ps']);
+    end
+    h = get(0,'children');
+    for i=1:length(h)
+        h(i).PaperOrientation = 'landscape';
+        h(i).PaperType = 'A3';
+        print(h(i), [CFG.dir_eeg CFG.subject_name '_QualityPlots'], '-dpsc','-append','-fillpage');
+    end
+    close all;
+
     % --------------------------------------------------------------
     % Save data.
     % --------------------------------------------------------------
@@ -73,5 +84,7 @@ for isub = 1:length(who_idx)
     writetable(S, EP.st_file)
     
 end
+
+
 
 fprintf('Done.\n')
