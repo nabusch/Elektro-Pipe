@@ -19,9 +19,9 @@
 addpath(sub_dir);
 addpath(cfg_dir);
 
-S = readtable(EP.st_file);
+EP.S = readtable(EP.st_file);
 
-who_idx = get_subjects(S, EP.who);
+who_idx = get_subjects(EP);
 
 
 %%
@@ -105,7 +105,7 @@ for isub = 1:length(who_idx)
     EEG = pop_editset(EEG, 'setname', [CFG.subject_name '_CleanBeforeICA.set']);
     EEG = pop_saveset( EEG, [CFG.subject_name '_CleanBeforeICA.set'] , CFG.dir_eeg);
     
-    S.has_prepICA(who_idx(isub)) = 1;
-    writetable(S, EP.st_file)
+    EP.S.has_prepICA(who_idx(isub)) = 1;
+    writetable(EP.S, EP.st_file)
     
 end

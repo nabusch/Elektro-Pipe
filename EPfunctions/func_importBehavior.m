@@ -71,6 +71,7 @@ for ievent = 1:length(EEG.event)
         try
         new_event_value = TrialsOut(thisepoch).(outfields{ifield});
         catch ME
+            warning('If you''re getting caught here, probably some trial(s) weren''t deleted in the EEG but in the logfile data.')
             keyboard;
         end
         if isempty(new_event_value)
