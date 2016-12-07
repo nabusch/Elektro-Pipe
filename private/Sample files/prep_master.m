@@ -34,14 +34,11 @@ EP.who = [1:10]; % Vector of numerical indices.
 %% Import and automatic preprocessing.
 EEG = prep01_preproc(EP);
 
-%% Semi-automatic prepartion for ICA.
-[ALLEEG EEG CURRENTSET ALLCOM] = eeglab('nogui');
+%% Semi-automatic preparation for ICA.
 prep02_cleanbeforeICA;
 
 %% Run ICA.
 EEG = prep03_runICA(EP);
 
 %% Reject ICA components.
-[ALLEEG EEG CURRENTSET ALLCOM] = eeglab('nogui');
-prep04_rejectICs;
-
+EEG = prep04_rejectICs(EP);

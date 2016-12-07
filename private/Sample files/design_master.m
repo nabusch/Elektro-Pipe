@@ -1,5 +1,6 @@
 %% "Master file" that runs the grand average for all ERPs from all subjects.
-clear; 
+clear;
+eeglab;
 close all;
 
 addpath(genpath('~\Elektro-Pipe\'));
@@ -9,32 +10,32 @@ addpath(genpath('~\Elektro-Pipe\'));
 % many experiments and also the Samples folder of the EP code folder
 % contain files with this name.
 EP.dir_experiment = ''; %e.g., '/data/ExperimentName/
-
+EP.EEG_Analysis_Folder = ''; % the subfolder containing code for the current project e.g., 'Analysis/EEG/'
 %% Define the EP structure (EP for Elektro Pipe). 
 % REQUIRED INPUTS:
 
 % Load the subjects table.
-addpath(fullfile([EP.dir_experiment filesep 'CodeWWU']))
-EP.S = readtable('SubjectsTable_Corenats.xlsx'); 
+addpath(fullfile([EP.dir_experiment filesep EP.EEG_Analysis_Folder]))
+EP.S = readtable('.xlsx'); %name of SubjectTable Excel-sheet.
 
 % Summary name for this project. Determines name of output folder.
-EP.project_name = 'Grand_ERP_encoding'; 
+EP.project_name = ''; %e.g., Grand_ERP_encoding or ER-TFA ...
 
 % Load the design file. The "D" structure contains information on the
 % factors and factor levels of the design.
-addpath(fullfile([EP.dir_experiment filesep 'CodeWWU']))
+addpath(fullfile([EP.dir_experiment filesep EP.EEG_Analysis_Folder]))
 EP.D = get_design;
 
 % Define the configuration file as a string. It does not make sense to
 % actually load the cfg file with getcfg here, because we later need the
 % subject-specific cfg file that includes file paths for this each subject.
-addpath(fullfile([EP.dir_experiment filesep 'CodeWWU']))
+addpath(fullfile([EP.dir_experiment filesep EP.EEG_Analysis_Folder]))
 EP.cfgfile = which('get_cfg');
 
 % While the cfg file defines where the EEG data are located, there are
 % probably multiple files in that folder. E.g. the different steps of the
 % preprocessing or different bandpass filter settings. This variable
-% defines the filename prefix we are interested in.
+% defines the filename suffix we are interested in.
 EP.filename_in = '_ICArej';
 
 % Folder where the EEG data are located. We cannot use the dirs defined in
@@ -45,29 +46,36 @@ EP.dir_in = [EP.dir_experiment filesep 'EEG'];
 
 % Folder where to store the results. Elektropipe will make separate
 % subfolders in dir_out, one for each design.
-EP.dir_out = EP.dir_experiment;
+EP.dir_out = [EP.dir_experiment, filesep, 'EEG-Results',filesep,EP.project_name];
 
 % What exactly do you want to do?
 % - erp: grand average ERP.
+% - tf:  Subject-wise wavelet analysis.
 % - for the future: other prcesses like fft or tf analysis.
-EP.process = 'erp';
+EP.process = ''; 
 
 % ----------------------------------------------------------------------
 % OPTIONAL INPUTS: Which subjects to use. You can use multiple selection
-% criteria. Note: criteria must be separated by semicolon! Default: all
+% criteria. Note: criteria must be separated by semicolon! Default: all = []
 % subjects
+EP.who = [];
 % EP.who = 1:3;
 % EP.who = {'pseudo', {'ADI029', 'ADI030', 'ADI052'}}; % use only subjects with a given value in field "pseudo" (any of these values).
-EP.who = {'Include', {1}};
+%EP.who = {'Include', {1}};
 % EP.who = {'Name', {'AI01', 'AI03'}; 'Include', 1; 'has_import', 0}; % Multiple columns and values. Only subjects fullfilling all criteria are included.
 
-% Which design in D to use. Default: use all designs.
-EP.design_idx = 1; 
+% Which design in D to use. Default: use all designs = [].
+EP.design_idx = []; 
 
 % Turn on/off command line messages as much as possible.
-EP.verbose = 1;
+EP.verbose = 0;
 
 %% Run grandaverage for all designs and subejcts.
 % Required input:
 % EP: struct containing parameters for the computation. See above.
-design_erp_grandaverage(EP);
+switch EP.process
+    case 'erp'
+        design_erp_grandaverage(EP);
+    case 'tf'
+        design_runtf(EP);
+end

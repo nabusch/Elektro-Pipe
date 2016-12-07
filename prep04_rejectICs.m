@@ -1,3 +1,4 @@
+function EEG = prep04_rejectICs(EP)
 
 [cfg_dir, cfg_name, ~] = fileparts(EP.cfg_file);
 [sub_dir, sub_name, ~] = fileparts(EP.cfg_file);
@@ -5,9 +6,9 @@
 addpath(sub_dir);
 addpath(cfg_dir);
 
-S = readtable(EP.st_file);
+EP.S = readtable(EP.st_file);
 
-who_idx = get_subjects(S, EP.who);
+who_idx = get_subjects(EP);
 
 
 %%
@@ -20,10 +21,9 @@ for isub = 1:length(who_idx)
     % Load CFG file. I know, eval is evil, but this way we allow the user
     % to give the CFG function any arbitrary name, as defined in the EP
     % struct.
-    evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', S);'];
+    evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', EP.S);'];
     eval(evalstring);
-    
-    
+        
     % Write a status message to the command line.
     fprintf('\nNow working on subject %s, (number %d of %d to process).\n\n', ...
         CFG.subject_name, isub, length(who_idx));   
@@ -32,10 +32,17 @@ for isub = 1:length(who_idx)
     EEG = pop_loadset('filename', [CFG.subject_name '_ICA.set'] , ...
         'filepath', CFG.dir_eeg, 'loadmode', 'all');
     %% Run SASICA
+    
+    % only use eyetracking data for component selection if indicated in
+    % getcfg
+    if CFG.eye_ica
+        EEG         = create_blink_channel(EEG);
+        fprintf('You chose to use eyetracking data to select ICA-components. To do so, use ''Eyegaze_X'' and ''Eyegaze_Y'' instead of HEOG and VEOG.\nSelect ''correlation with other channel(s)'' and insert ''Blinks''...\n');
+    end
     [EEG, com] = SASICA(EEG);
-    EEG = eegh(com,EEG);
     %%
-    keyboard
+    keyboard;
+    EEG = eegh(com,EEG);
     %%
     [EEG, com] = pop_subcomp(EEG, find(EEG.reject.gcompreject),1);
     if isempty(com)

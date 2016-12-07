@@ -1,5 +1,6 @@
 function D = get_design(designidx)
-% 
+% D = GET_DESIGN(designidx) gets & defines designs for EEG analysis 
+%
 % Functions handling the design information will select the appropriate
 % trials from the EEG datasets using the information stored in the
 % EEG.event structure, such as correctness, stimulus type, etc.
@@ -21,14 +22,13 @@ function D = get_design(designidx)
 %   not informative. What does EEG.event.cue_type = 1 mean. You can define an
 %   informative string here.
 
-
 D(1).factor_names  = {'presentation_no', 'ReportCorrect'};
 D(1).factor_values = { {1 2 3}, {0 1}};
 D(1).factor_names_label = {'presentation', 'accuracy'};
 D(1).factor_values_label = { {'first', 'second', 'third'}, {'error', 'correct'} };
 
 % Make sure we return only the desired designs.
-if nargin~=0;
+if nargin~=0
     D = D(designidx);
 end
 

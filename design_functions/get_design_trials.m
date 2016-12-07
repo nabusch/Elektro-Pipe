@@ -20,20 +20,26 @@ for icondition = 1:length(DINFO.design_matrix)
     for ifactor = 1:DINFO.nfactors
         
         % Determine current factor name and factor level.
-        factor_name  = char(EP.D.factor_names(ifactor));
+        factor_name  = char(DINFO.factor_names(ifactor));
         factor_level = DINFO.design_matrix(icondition, ifactor);
         
         
         % Determine which events correspond to the desired factor level. If
         % factor_level==0 (i.e. for main effects), choose all trials.
-        if factor_level <= length(EP.D.factor_values{ifactor}) % wrong if this is a main effect.
-            factor_value = EP.D.factor_values{ifactor}{factor_level};
+        if factor_level <= length(DINFO.factor_values{ifactor}) % wrong if this is a main effect.
+            factor_value = DINFO.factor_values{ifactor}{factor_level};
         else
-            factor_value = cell2mat(EP.D.factor_values{ifactor});
+            factor_value = cell2mat(DINFO.factor_values{ifactor});
         end
         
         if ischar(factor_value(1))
-            eegevents(ifactor,:) = ismember({EEG.event.(factor_name)}, factor_value);
+            %Wanja: Not sure why Niko used curly braces. That doesn work
+            %for me, but maybe it's necesssary for his computations...
+            try
+                eegevents(ifactor,:) = ismember({EEG.event.(factor_name)}, factor_value);
+            catch
+                eegevents(ifactor,:) = ismember([EEG.event.(factor_name)], factor_value);
+            end
             %             fprintf('\t%s %s', factor_name, factor_value)
         else
             %             eegevents(ifactor,:) = ismember([EEG.event.(factor_name)], factor_value);

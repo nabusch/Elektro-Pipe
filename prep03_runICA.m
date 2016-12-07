@@ -1,4 +1,4 @@
-function EEG = s03_eeg_runica(EP)
+function EEG = prep03_runICA(EP)
 
 [cfg_dir, cfg_name, ~] = fileparts(EP.cfg_file);
 [sub_dir, sub_name, ~] = fileparts(EP.cfg_file);
@@ -6,9 +6,9 @@ function EEG = s03_eeg_runica(EP)
 addpath(sub_dir);
 addpath(cfg_dir);
 
-S = readtable(EP.st_file);
+EP.S = readtable(EP.st_file);
 
-who_idx = get_subjects(S, EP.who);
+who_idx = get_subjects(EP);
 
 
 for isub = 1:length(who_idx)
@@ -22,7 +22,7 @@ for isub = 1:length(who_idx)
     % Load CFG file. I know, eval is evil, but this way we allow the user
     % to give the CFG function any arbitrary name, as defined in the EP
     % struct.
-    evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', S);'];
+    evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', EP.S);'];
     eval(evalstring);
     
     % Write a status message to the command line.
@@ -47,11 +47,11 @@ for isub = 1:length(who_idx)
     
     %create a subfolder for the temporary binica files, in case binica is used
     if strcmp(CFG.ica_type,'binica')
-        mkdir([CFG.dir_eeg filesep 'binica']);
-        cd([CFG.dir_eeg filesep 'binica']);
+        mkdir([CFG.dir_eeg 'binica']);
+        cd([CFG.dir_eeg 'binica']);
     end
     
-    ncomps_sub = S.ica_ncomps(who_idx(isub));
+    ncomps_sub = EP.S.ica_ncomps(who_idx(isub));
     if ~isempty(ncomps_sub) & ~isnan(ncomps_sub)& ncomps_sub~=0
         fprintf('Subject-specific setting:\n');
         fprintf('Extracting only %d ICA components from %d channels.\n', ...
@@ -83,9 +83,11 @@ for isub = 1:length(who_idx)
     
     EEG = eegh(com, EEG);
     
-    %in case binica has been used, cd back to the main folder
+    %in case binica has been used, cd back to the main folder and delete
+    %binica folder
     if strcmp(CFG.ica_type,'binica')
         cd(CFG.dir_main);
+        rmdir([CFG.dir_eeg 'binica'],'s');
     end
     % --------------------------------------------------------------
     % Save data.
@@ -93,8 +95,8 @@ for isub = 1:length(who_idx)
     EEG = pop_editset(EEG, 'setname', [CFG.subject_name '_ICA.set']);
     EEG = pop_saveset( EEG, [CFG.subject_name '_ICA.set'] , CFG.dir_eeg);
         
-    S.has_ICA(who_idx(isub)) = 1;
-    writetable(S, EP.st_file)
+    EP.S.has_ICA(who_idx(isub)) = 1;
+    writetable(EP.S, EP.st_file)
 
 end
 

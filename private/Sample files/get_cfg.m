@@ -1,17 +1,20 @@
-function [CFG, S] = getcfg(idx, S)
+function [CFG, S] = get_cfg(idx, S)
 
 %% Read info for this subject and get file names and dirctories.
-CFG.dir_main  = ''; %e.g., '/data/ExperimentName/
+rootfilename    = which('get_cfg.m');
+rootpath        = rootfilename(1:regexp(rootfilename,[filesep,'Analysis',filesep,'EEG',filesep,'get_cfg.m']));
+
+CFG.dir_main = rootpath;
 
 if nargin>0                
-    
-    CFG.subject_name = char(S.Name(idx));
-            
+    CFG.subject_name  = char(S.Name(idx));
     CFG.dir_behavior  = [CFG.dir_main 'Logfiles/'];
     CFG.dir_raw       = [CFG.dir_main 'BDF/'];
-    CFG.dir_eeg       = [CFG.dir_main 'EEG/' CFG.subject_name '/']; 
-    CFG.dir_tf        = [CFG.dir_main 'TF/' CFG.subject_name '/']; 
-    CFG.dir_filtbert  = [CFG.dir_main 'Filtbert/' CFG.subject_name '/'];    
+    CFG.dir_raweye    = [CFG.dir_main 'EDF/'];
+    CFG.dir_eeg       = [CFG.dir_main 'EEG/' CFG.subject_name filesep]; 
+    CFG.dir_eye       = [CFG.dir_main 'EYE/' CFG.subject_name filesep]; 
+    CFG.dir_tf        = [CFG.dir_main 'TF/' CFG.subject_name filesep]; 
+    CFG.dir_filtbert  = [CFG.dir_main 'Filtbert/' CFG.subject_name filesep];    
 end
 
 %% Data organization and content.
@@ -116,7 +119,7 @@ CFG.eye_keepfiles      = [0 0];
 
 
 %% Parameters for ICA.
-CFG.ica_type = 'runica';
+CFG.ica_type = 'binica';
 CFG.ica_extended = 1; % Run extended infomax ICA?
 CFG.ica_chans = CFG.data_chans; % Typicaly, ICA is computed on all channels, unless one channel is not really EEG.
 CFG.ica_ncomps = 65; %[numel(CFG.data_chans)-3]; % if ica_ncomps==0, determine data rank from the ...
@@ -124,8 +127,8 @@ CFG.ica_ncomps = 65; %[numel(CFG.data_chans)-3]; % if ica_ncomps==0, determine d
 % settings will override this parameter.
 
 %% Parameters for SASICA.
-CFG.sasica_heogchan = '70';
-CFG.sasica_veogchan = '71';
+CFG.sasica_heogchan = num2str(CFG.data_chans+1);
+CFG.sasica_veogchan = num2str(CFG.data_chans+2);
 CFG.sasica_autocorr = 20;
 CFG.sasica_focaltopo = 'auto';
 
@@ -147,4 +150,4 @@ CFG.tf_cycles      = [1 6];
 CFG.tf_causal      = 'off';
 CFG.tf_freqscale   = 'log';
 CFG.tf_ntimesout    = 400;
-CFG.tf_verbose     = 'off';
+CFG.tf_verbose     = 'off'; % if not specified: overwritten by EP.verbose

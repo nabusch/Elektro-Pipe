@@ -30,7 +30,7 @@ for isub = 1:length(who_idx)
     % Load CFG file. I know, eval is evil, but this way we allow the user
     % to give the CFG function any arbitrary name, as defined in the EP
     % struct.
-    evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', S);'];
+    evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', EP.S);'];
     eval(evalstring);
     
     
@@ -48,8 +48,8 @@ for isub = 1:length(who_idx)
     % ---------------------------------------------------------------------
     % If cfg file specifies channels for interpolation for this subject,
     % interpolate them now.
-    if iscell(S.interp_chans)
-        interp_chans = str2num(S.interp_chans{who_idx(isub)});
+    if iscell(EP.S.interp_chans)
+        interp_chans = str2num(EP.S.interp_chans{who_idx(isub)});
     else
         interp_chans = [];
     end
