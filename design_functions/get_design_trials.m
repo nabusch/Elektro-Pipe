@@ -28,13 +28,15 @@ for icondition = 1:length(DINFO.design_matrix)
         % factor_level==0 (i.e. for main effects), choose all trials.
         if factor_level <= length(DINFO.factor_values{ifactor}) % wrong if this is a main effect.
             factor_value = DINFO.factor_values{ifactor}{factor_level};
+            its_char     = ischar(factor_value(1));
         else
-            factor_value = cell2mat(DINFO.factor_values{ifactor});
+            factor_value = DINFO.factor_values{ifactor};
+            its_char     = ischar(factor_value{1});
         end
         
-        if ischar(factor_value(1))
-            %Wanja: Not sure why Niko used curly braces. That doesn work
-            %for me, but maybe it's necesssary for his computations...
+        if its_char
+            %Try..catch because the behavior of ismember changed over
+            %Matlab versions.
             try
                 eegevents(ifactor,:) = ismember({EEG.event.(factor_name)}, factor_value);
             catch
