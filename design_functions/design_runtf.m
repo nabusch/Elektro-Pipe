@@ -1,21 +1,21 @@
-function [TF,ALLTF,ITC,TFINFO] = design_runtf(EP)
+function [TF] = design_runtf(EP)
 % TF = DESIGN_RUNTF(EP)
 %
 % Compute a time frequency analysis for all conditions specified in EP.
 % The function computes for every design a struct "TF".
-% This struct has fields Designs x Subjects.
+% This struct has fields conditions x Subjects.
 % Consequently, each field contains a struct for each subject analyzed in a
 % certain design. This struct contains the following fields:
 
 % data fields
 %  TF(d,s).pow      : 4D power freqs x times x channels x condition
 %  TF(d,s).itc      : 4D phase-locking similar to pow
-% 
+%
 % further information fields
 %  TF(d,s).times; TF(d,s).freqs,TF(d,s).cycles; TF(d,s).freqsol,
 %  TF(d,s).timeresol; TF(d,s).wavelet, TF(d,s).old_srate; TF(d,s).new_srate
 %  TF(d,s).chanlocs; TF(d,s).condition
-% 
+%
 % So, results will be averaged across trials, we do not save single trials.
 %
 % This function uses the parallel computing toolbox, using as many cores as
@@ -32,6 +32,12 @@ function [TF,ALLTF,ITC,TFINFO] = design_runtf(EP)
 % EP.project_name: Name for the current adventure. e.g., 'ER-TFA'
 % EP.verbose: massive debugging output or not.
 % EP.dir_out: master-folder in which subfolders per design will be saved.
+%
+% Output:
+% Always the TF-struct of the last Design. So if your get_design has 3
+% designs, TF for all Designs is computed and saved but only design 3 will
+% be provided via the direct output parameter. Everything else would use
+% way too much RAM.
 %
 % Written by Niko Busch (niko.busch@wwu.de)
 % and adjusted for parallel computing and use in Elektro-Pipe by
@@ -209,7 +215,7 @@ for idesign = 1:length(EP.design_idx)
     end
     
     %--------------------------------------------------------------
-    % Save file for the current design, clear RAM, and continue  
+    % Save file for the current design, clear RAM, and continue
     % to next design.
     %--------------------------------------------------------------
     savepath = [EP.dir_out filesep DINFO.design_name];
@@ -218,6 +224,8 @@ for idesign = 1:length(EP.design_idx)
     end
     savefile = fullfile(savepath, [EP.project_name, '_D', num2str(DINFO.design_idx), '.mat']);
     save(savefile, 'TF');
-    clear TF C tmp;
+    if design ~= length(EP.design_idx) %don't clear if it's the last one.
+        clear TF C tmp;
+    end
 end
 end
