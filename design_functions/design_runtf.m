@@ -3,18 +3,21 @@ function [TF] = design_runtf(EP)
 %
 % Compute a time frequency analysis for all conditions specified in EP.
 % The function computes for every design a struct "TF".
-% This struct has fields conditions x Subjects.
+% This struct has dimensions:
+% levelsFactor1 x levelsFactor2 x ... x levelsFactorN.
 % Consequently, each field contains a struct for each subject analyzed in a
 % certain design. This struct contains the following fields:
-
+%
 % data fields
-%  TF(d,s).pow      : 4D power freqs x times x channels x condition
-%  TF(d,s).itc      : 4D phase-locking similar to pow
+%  TF(lvlF1,...,lvlFn).pow      : 4D power freqs x times x channels x subject
+%  TF(lvlF1,...,lvlFn).itc      : 4D phase-locking similar to pow
 %
 % further information fields
-%  TF(d,s).times; TF(d,s).freqs,TF(d,s).cycles; TF(d,s).freqsol,
-%  TF(d,s).timeresol; TF(d,s).wavelet, TF(d,s).old_srate; TF(d,s).new_srate
-%  TF(d,s).chanlocs; TF(d,s).condition
+%  TF(lvlF1,...,lvlFn).times; TF(lvlF1,...,lvlFn).freqs;
+%  TF(lvlF1,...,lvlFn).cycles; TF(lvlF1,...,lvlFn).freqsol;
+%  TF(lvlF1,...,lvlFn).timeresol; TF(lvlF1,...,lvlFn).wavelet; 
+%  TF(lvlF1,...,lvlFn).old_srate; TF(lvlF1,...,lvlFn).new_srate;
+%  TF(lvlF1,...,lvlFn).chanlocs; TF(lvlF1,...,lvlFn).condition
 %
 % So, results will be averaged across trials, we do not save single trials.
 %
@@ -93,6 +96,21 @@ for idesign = 1:length(EP.design_idx)
         CFG = my_CFG; %this is necessary to make CFG 'unambiguous in this context'
         EEG = pop_loadset('filename', [CFG.subject_name EP.filename_in '.set'] , ...
             'filepath', CFG.dir_eeg);
+        %----------------------------------------------------------------------------
+        %----------------------------------------------------------------------------
+        %----------------------------------------------------------------------------
+        %DELETE THIS: IT'S JUST A WORKAROUND FOR WANJAS PILOT
+        for iRow = 1:length(EEG.event)
+            if strcmp(EEG.event(iRow).retrocue, 'noCue')
+                tmp = 2;
+            else
+                tmp = double(strcmp(EEG.event(iRow).probecue,EEG.event(iRow).retrocue));
+            end
+            EEG.event(iRow).validity = tmp;
+        end
+        %----------------------------------------------------------------------------
+        %----------------------------------------------------------------------------
+        %----------------------------------------------------------------------------
         
         %--------------------------------------------------------------
         % don't re-ference Eye-channels & *EOG to EEG-reference
@@ -209,7 +227,7 @@ for idesign = 1:length(EP.design_idx)
                 TF(idx{:}).old_srate           = C(ichan).TF(icond).old_srate;
                 TF(idx{:}).new_srate           = C(ichan).TF(icond).new_srate;
                 TF(idx{:}).chanlocs            = C(ichan).TF(icond).chanlocs;
-                TF(idx{:}).condition(icond)    = C(ichan).TF(icond).condition;
+                TF(idx{:}).condition           = C(ichan).TF(icond).condition;
             end
         end
     end
@@ -224,7 +242,7 @@ for idesign = 1:length(EP.design_idx)
     end
     savefile = fullfile(savepath, [EP.project_name, '_D', num2str(DINFO.design_idx), '.mat']);
     save(savefile, 'TF');
-    if design ~= length(EP.design_idx) %don't clear if it's the last one.
+    if idesign ~= length(EP.design_idx) %don't clear if it's the last one.
         clear TF C tmp;
     end
 end
