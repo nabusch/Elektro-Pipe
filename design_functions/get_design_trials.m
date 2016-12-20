@@ -23,7 +23,6 @@ for icondition = 1:length(DINFO.design_matrix)
         factor_name  = char(DINFO.factor_names(ifactor));
         factor_level = DINFO.design_matrix(icondition, ifactor);
         
-        
         % Determine which events correspond to the desired factor level. If
         % factor_level==0 (i.e. for main effects), choose all trials.
         if factor_level <= length(DINFO.factor_values{ifactor}) % wrong if this is a main effect.
@@ -52,13 +51,16 @@ for icondition = 1:length(DINFO.design_matrix)
             % response times <= 200 ms, we want to include RTs of
             % 105.004, although that value is not included in the 1:200
             % vector, which has only integer numbers.
-            eegevents(ifactor,:) = ismember(round([EEG.event.(factor_name)]), factor_value);
+            if iscell(factor_value) %it's a cell for the main effects
+                eegevents(ifactor,:) = ismember(round([EEG.event.(factor_name)]), [factor_value{:}]);
+            else
+                eegevents(ifactor,:) = ismember(round([EEG.event.(factor_name)]), factor_value);
+            end
             %             fprintf('\t%s %d', factor_name, factor_value)
         end
-        
+        condinfo(icondition).level{ifactor} = factor_level;
     end
-    
-    
+        
     if DINFO.nfactors > 1
         wantedevents = find(all(eegevents));
     else
