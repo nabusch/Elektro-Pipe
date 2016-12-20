@@ -1,4 +1,4 @@
-function [h, c] = func_plot_tf(TF,conds,varargin)
+function [h, c] = func_plot_tf(TF,varargin)
 % FUNC_PLOT_TF(TF,conds,varargin) creates a simple time-frequency plot
 % 
 % func_plot_tf(TF,conds,varargin) creates a simple Time-Frequency plot. 
@@ -9,37 +9,40 @@ function [h, c] = func_plot_tf(TF,conds,varargin)
 %       c: colorbar handle
 %
 % Required input:
-%       TF: Struct with (minimum) fields 'pow'(power: powPerFreq*time*chan), 
-%           'chanloc','freqs','times','condition'. Each row should contain
-%           data for one condition.
-%       conds: indeces of conditions over which to average data for
-%              plotting.
+%       TF: Struct with (minimum) fields 'pow'(power: powPerFreq*time*chan*cond), 
+%           'chanloc','freqs','times','condition'.
 %
 % Keywords for optional input: 
 %       'scale': can be 'absmax', 'minmax'(default) or a vector [min max]
 %       'smoothness': the ncontours of contourf(). Default=49
-%       'title': title for the plot. default is 'off'.
-%       'xlab': x-label for the plot. default is 'off'.
-%       'ylab': y-label for the plot. default is 'off'.
-%       'chans': vector containing numerical indeces or cell vector
-%                containing the desired channel-names. The resulting plot
-%                will show the averaged data of all indicated channels.
-%                Default is all channels.
-%       'tlim' : numerical vector indicating the time-interval to plot.
-%                Default is [min max]
-%       'freqs': Numerical vector of frequency-limit to plot. Default is [min max];
-%       'unit': string. The function doesn't know what unit your data are
-%                in. Specify a string here to print it next to the scale. 
+%       'title' : title for the plot. default is 'off'.
+%       'xlab'  : x-label for the plot. default is 'off'.
+%       'ylab'  : y-label for the plot. default is 'off'.
+%       'chans' : vector containing numerical indeces or cell vector
+%                 containing the desired channel-names. The resulting plot
+%                 will show the averaged data of all indicated channels.
+%                 Default is all channels.
+%       'tlim'  : numerical vector indicating the time-interval to plot.
+%                 Default is [min max]
+%       'freqs' : Numerical vector of frequency-limit to plot. Default is [min max];
+%       'unit'  : string. The function doesn't know what unit your data are
+%                 in. Specify a string here to print it next to the scale. 
+%       'subjs' : indeces indicating which subject's data to plot. 
+%                 If more than 1, average is plotted. Defaults to all.
+%       'conds' : cell. indeces of levels for each dimension. defaults to
+%                 average of all dimensions. e.g., for a Design with 3
+%                 factors this would be {dim1,dim2,dim3}
 %
-% Wanja Moessing (moessing@wwu.de) Dec 6, 2016
+% Wanja Moessing (moessing@wwu.de) Dec, 2016
 
 %% input checks
 p = inputParser;
 p.FunctionName = 'funct_plot_tf';
 p.addRequired('TF',@isstruct);
-p.addRequired('conds',@isnumeric);
+p.addOptional('conds','all',@(x) iscell(x) && isnumeric([x{:}]));
+p.addOptional('subjs','all',@(x) all(mod(x,1)==0));
 p.addOptional('chans',1:size(TF(1).pow,3),@(x) length(unique(x))==length(x));
-p.addOptional('scale','minmax',@(x) isnumeric(x) && length(x)==2);
+p.addOptional('scale','minmax',@(x) (isnumeric(x) && length(x)==2) || any(strcmp(x,{'absmax','minmax'})));
 p.addOptional('smoothness',48,@isnumeric);
 p.addOptional('title','off',@isstr);
 p.addOptional('xlab','off',@isstr);
@@ -47,9 +50,11 @@ p.addOptional('ylab','off',@isstr);
 p.addOptional('tlim','minmax',@(x) isnumeric(x) && length(x)==2);
 p.addOptional('freqs','minmax',@(x) isnumeric(x) && length(x)==2);
 p.addOptional('unit','',@isstr);
-parse(p,TF,conds,varargin{:})
+parse(p,TF,varargin{:})
 
 %% Transform input
+cond        = p.Results.conds;
+subjs       = p.Results.subjs;
 chans       = p.Results.chans;
 scale       = p.Results.scale;
 smoothness  = p.Results.smoothness;
@@ -60,25 +65,52 @@ tlim        = p.Results.tlim;
 freq        = p.Results.freqs;
 unit        = p.Results.unit;
 
+%how many dimensions does the current TF have?
+dims   = ndims(TF);
+maxdim = size(TF);
+
+%create struct that can be used for indexing independent of number of
+%dimensions (i.e. factors)
+if strcmp(cond,'all')
+    for d=1:dims
+        conds{d} = maxdim(d);
+    end
+elseif iscell(cond) && length(cond)==dims
+    conds = cond;
+else
+    error('Please provide condition indeces as cell (i.e., {dim1,dim2,..,dimN}).')
+end
+
+%extract the desired data
+TF = TF(conds{:});
+
+%check channels
 if iscell(chans)
-    if all(ismember(chans,{TF(1).chanlocs.labels}))
-        chans = find(ismember({TF(1).chanlocs.labels},chans));
+    if all(ismember(chans,{TF.chanlocs.labels}))
+        chans = find(ismember({TF.chanlocs.labels},chans));
     else
         error('couldn''t find the specified channels');
     end
-elseif ~all(ismember(chans,1:length(TF(1).chanlocs)))
+elseif ~all(ismember(chans,1:length(TF.chanlocs)))
     error('couldn''t find the specified channels');
 end
-%% extract data
-x = TF(conds(1)).times;
-y = TF(conds(1)).freqs;
 
-for iCond = conds
-    z(:,:,:,iCond) = TF(iCond).pow(:,:,chans);
+% define over which subjects to average
+if strcmp(subjs,'all')
+    nsubs = size(TF.pow);
+    subjs = 1:nsubs(end);
 end
-%% make z 2-dimensional (i.e., average power over channels and/or conditions)
-z = mean(mean(z,4),3);
 
+%% extract data
+x = TF.times;
+y = TF.freqs;
+z(:,:,:,:) = TF.pow(:,:,chans,subjs);
+
+%% make z 2-dimensional (i.e., average power over channels and/or subjects)
+z = mean(mean(z,4),3);
+if all(all(isnan(z)))
+    error('Power data are NaN. One reason could be that your condition does not have any trials.');
+end
 %% create contour figure
 [~, h] = contourf(x, y, z, smoothness, 'linestyle', 'none');
 
@@ -88,22 +120,22 @@ if strcmp(scale,'minmax')
     lim.z(1) = min(z(:));
     lim.z(2) = max(z(:));
 elseif strcmp(scale,'absmax')
-    lim.z(1) = max(abs([min(z(:)) max(z(:))]));
-    lim.z(2) = -blim;
+    lim.z(2) = max(abs([min(z(:)) max(z(:))]));
+    lim.z(1) = -lim.z(2);
 else
     lim.z    = scale;
 end
 
 % y/frequency
 if strcmp(freq,'minmax')
-    lim.y = [min(TF(1).freqs) max(TF(1).freqs)];
+    lim.y = [min(y) max(y)];
 else
     lim.y = freq;
 end
 
 % x/time
 if strcmp(tlim,'minmax')
-    lim.x = [min(TF(1).times) max(TF(1).times)];
+    lim.x = [min(x) max(x)];
 else
     lim.x = tlim;
 end

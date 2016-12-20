@@ -96,21 +96,6 @@ for idesign = 1:length(EP.design_idx)
         CFG = my_CFG; %this is necessary to make CFG 'unambiguous in this context'
         EEG = pop_loadset('filename', [CFG.subject_name EP.filename_in '.set'] , ...
             'filepath', CFG.dir_eeg);
-        %----------------------------------------------------------------------------
-        %----------------------------------------------------------------------------
-        %----------------------------------------------------------------------------
-        %DELETE THIS: IT'S JUST A WORKAROUND FOR WANJAS PILOT
-        for iRow = 1:length(EEG.event)
-            if strcmp(EEG.event(iRow).retrocue, 'noCue')
-                tmp = 2;
-            else
-                tmp = double(strcmp(EEG.event(iRow).probecue,EEG.event(iRow).retrocue));
-            end
-            EEG.event(iRow).validity = tmp;
-        end
-        %----------------------------------------------------------------------------
-        %----------------------------------------------------------------------------
-        %----------------------------------------------------------------------------
         
         %--------------------------------------------------------------
         % don't re-ference Eye-channels & *EOG to EEG-reference
