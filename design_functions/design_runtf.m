@@ -15,7 +15,7 @@ function [TF] = design_runtf(EP)
 % further information fields
 %  TF(lvlF1,...,lvlFn).times; TF(lvlF1,...,lvlFn).freqs;
 %  TF(lvlF1,...,lvlFn).cycles; TF(lvlF1,...,lvlFn).freqsol;
-%  TF(lvlF1,...,lvlFn).timeresol; TF(lvlF1,...,lvlFn).wavelet; 
+%  TF(lvlF1,...,lvlFn).timeresol; TF(lvlF1,...,lvlFn).wavelet;
 %  TF(lvlF1,...,lvlFn).old_srate; TF(lvlF1,...,lvlFn).new_srate;
 %  TF(lvlF1,...,lvlFn).chanlocs; TF(lvlF1,...,lvlFn).condition
 %
@@ -26,7 +26,7 @@ function [TF] = design_runtf(EP)
 %
 % Input:
 % struct 'EP', as outlined in design_master. Uses the following fields:
-% EP.who: Optional. can define which subjects to use. Default is all subjects.
+%
 % EP.design_idx: which designs specified in get_design. Default is all designs.
 % EP.cfgfile: get_cfg.m that should be used
 % EP.S: Table with processing information
@@ -35,6 +35,12 @@ function [TF] = design_runtf(EP)
 % EP.project_name: Name for the current adventure. e.g., 'ER-TFA'
 % EP.verbose: massive debugging output or not.
 % EP.dir_out: master-folder in which subfolders per design will be saved.
+%
+% Optional input:
+% EP.keepdouble: if 1, data are kept as double. if 0 (default) data are
+%                converted to single.
+% EP.who: Optional. can define which subjects to use. Default is all subjects.
+% EP.design_idx: which designs specified in get_design. Default is all designs.
 %
 % Output:
 % Always the TF-struct of the last Design. So if your get_design has 3
@@ -46,6 +52,11 @@ function [TF] = design_runtf(EP)
 % and adjusted for parallel computing and use in Elektro-Pipe by
 % Wanja Moessing (moessing@wwu.de). University of Muenster - Dec 6, 2016
 
+%% Starting Info
+fprintf(['\n-----------------------------------------\n',...
+    'design_runtf: Preparing time-frequency analysis\n',...
+    '-----------------------------------------\n']);
+
 %% Decode which subjects to process.
 if ~isfield(EP, 'who')
     EP.who = [];
@@ -55,6 +66,17 @@ subjects_idx = get_subjects(EP);
 %% Decode which designs to process.
 if ~isfield(EP, 'design_idx') || isempty(EP.design_idx)
     EP.design_idx = 1:length(EP.D); %default = all designs
+end
+
+%% store data in single or double precision?
+if ~isfield(EP, 'keepdouble') || isempty(EP.keepdouble)
+    EP.keepdouble = 0;
+end
+
+if ~EP.keepdouble && EP.verbose
+    disp('design_runtf: Will store data in single precision to preserve space.');
+elseif EP.keepdouble && EP.verbose
+    disp('design_runtf: Keeping data in double precision. Are you sure that''s necessary?');
 end
 %--------------------------------------------------------------
 % loop over designs
@@ -151,6 +173,9 @@ for idesign = 1:length(EP.design_idx)
         % Run TF analysis once across all trials.
         % This runs for multiple channels in parallel
         %-----------------------------------------------------------
+        if EP.verbose
+            disp('design_runtf: computing tf...');
+        end
         parfor ichan = 1:nchans
             %for ichan =1:nchans
             if strcmp(CFG.tf_verbose,'on')
@@ -176,8 +201,13 @@ for idesign = 1:length(EP.design_idx)
                         icondition,condition_names{icondition});
                 end
                 thistf   = tf(:,:,trialidx);
-                C(ichan).TF(icondition).pow(:,:,ichan) = mean(abs(thistf).^2,3);
-                C(ichan).TF(icondition).itc(:,:,ichan) = abs(mean(exp(angle(thistf) * sqrt(-1)),3));
+                if ~EP.keepdouble
+                    C(ichan).TF(icondition).pow(:,:,ichan) = single(mean(abs(thistf).^2,3));
+                    C(ichan).TF(icondition).itc(:,:,ichan) = single(abs(mean(exp(angle(thistf) * sqrt(-1)),3)));
+                else
+                    C(ichan).TF(icondition).pow(:,:,ichan) = mean(abs(thistf).^2,3);
+                    C(ichan).TF(icondition).itc(:,:,ichan) = abs(mean(exp(angle(thistf) * sqrt(-1)),3));
+                end
                 C(ichan).TF(icondition).times          = tftimes;
                 C(ichan).TF(icondition).freqs          = tffreqs;
                 C(ichan).TF(icondition).cycles         = CFG.tf_cycles;
@@ -213,6 +243,19 @@ for idesign = 1:length(EP.design_idx)
                 TF(idx{:}).new_srate           = C(ichan).TF(icond).new_srate;
                 TF(idx{:}).chanlocs            = C(ichan).TF(icond).chanlocs;
                 TF(idx{:}).condition           = C(ichan).TF(icond).condition;
+                TF(idx{:}).DINFO               = DINFO;
+                TF(idx{:}).trials              = condinfo(icond).trials;
+                TF(idx{:}).factor_names        = DINFO.factor_names;
+                % extract information on factor values so they are easily
+                % accessible in later stages.
+                for ifactor = 1:length(DINFO.factor_values)
+                    if condinfo(icond).level{ifactor}==length(DINFO.factor_values{1,ifactor})+1
+                        TF(idx{:}).factor_values{1,ifactor} = '*';
+                    else
+                        TF(idx{:}).factor_values{1,ifactor} = ...
+                            DINFO.factor_values{1,ifactor}{condinfo(icond).level{ifactor}};
+                    end
+                end
             end
         end
     end
