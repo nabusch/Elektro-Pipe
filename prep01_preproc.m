@@ -8,10 +8,9 @@ addpath(sub_dir);
 addpath(cfg_dir);
 
 S = readtable(EP.st_file);
-
+EP.S = S;
 who_idx = get_subjects(EP);
 
-EP.S = S;
 for isub = 1:length(who_idx)
     
     EEG = [];

@@ -80,7 +80,6 @@ for ievent = 1:length(EEG.event)
             fprintf('Filling this field with arbitrary value of %d\n', fillvalue)
             new_event_value = fillvalue;
         end
-        
         EEG.event(ievent).(outfields{ifield}) = new_event_value;
     end
 end
@@ -95,9 +94,29 @@ if length(EEG.epoch) ~= ntrials
 end
 
 
+%if specified in get_cfg, use latency checks to delete trials where a
+%trigger differed more than 3ms from the median latency of that kind of
+%trigger.
+if cfg.deletebadlatency
+    rejidx=zeros(1,length(EEG.epoch));
+    rejidx(EEG.latencyBasedRejection)=1;
+    if any(rejidx)
+        warning(['Deleting %i trials because they included triggers that had',...
+            ' weird latency glitches for some triggers.\nYou should check',...
+            ' your code and/or setup!'],sum(rejidx));
+        fid = fopen([cfg.dir_eeg,'TrialsWithBadLatency.txt'], 'wt');
+        fprintf( fid, ['The following trials where deleted after\n',...
+            'coregistration with behavioral data. That is because\n',...
+            'one of the triggers %s differed by more than 3ms from the\n',...
+            'median latency of this trigger across all trials.\n\n',...
+            'Trials: %s\n'], num2str(cfg.checklatency), num2str(find(rejidx)));
+        fclose(fid);
+        EEG = pop_rejepoch(EEG,rejidx,0);
+    end
+end
+
 % Update the EEG.epoch structure.
 EEG = eeg_checkset(EEG, 'eventconsistency');
-
 
 % Include the full trials structure in the EEG strucutre. You never know
 % when it might be useful, especially for the more complex fields that

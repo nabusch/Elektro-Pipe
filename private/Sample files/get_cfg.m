@@ -40,30 +40,46 @@ CFG.trig_omit = [];
 % trials at the beginning
 CFG.trial_omit  = [];
 
+%remove epochs, that contain the target-trigger but not all of the triggers
+%specified here. Currently this can result in problems with the
+%coregistration of behavioral data.
+CFG.trig_omit_inv = [] ;
+
 % Optional: If you are using the file-io in WM-utilities, you might want to
 % use ONLY triggers from the PC or ONLY triggers from the ViewPixx. To
 % delete epochs of one of the devices prior to epoching, specify the
-% to-be-used device here.
+% to-be-kept device here.
 % This is *very specific to out lab*. So you can probably leave it
 % empty (default).
-CFG.trigger_device = []; % can be [],'lowbyte-VPixx' or 'highbyte-PC'
+CFG.trigger_device = []; % can be [],'lowbyte-PC' or 'highbyte-VPixx'
 
 % Did you use online-eyetracking to mark bad trials in your logfile?
 % specify the fieldname of the field in your logfile struct that contains
 % this information. Check func_importbehavior for more information.
 CFG.badgaze_fieldname = 'badgaze';
+
+% Do you want to check the latencies of specific triggers within each
+% epoch?
+CFG.checklatency=[25 30 35];
+%Do you want to delete trials that differ by more than 3ms from the median
+%latency AFTER coregistration with behavoral data.
+CFG.deletebadlatency = 1;
 %% Parameters for data import and preprocessing.
 
 % Indices of channels that contain data, including external electrodes, but not bipolar channels like VEOG, HEOG.
-CFG.data_chans = 1:69; 
+CFG.data_urchans = [1:64,69];%[1,3:15,17:50,52:63]; 
+
+% Indices of channels that contain data after rejecting the channels not
+% selected in CFG.data_urchans. 
+CFG.data_chans   = 1:length(CFG.data_urchans);
 
 % Use these channels for computing bipolar HEOG and VEOG channel.
-CFG.heog_chans = [67 68];
-CFG.veog_chans = [1  69];
+CFG.heog_chans = [2 51];
+CFG.veog_chans = [42 65];
 
 % Channel location file. If you use your own custom file, you have to
 % provide the full path and filename.
-CFG.chanlocfile = 'standard-10-5-cap385.elp'; %This is EEGLAB's standard lookup table.
+CFG.chanlocfile = 'Custom_M34_V3_Easycap_Layout_EEGlab.sfp';%standard-10-5-cap385.elp'; %This is EEGLAB's standard lookup table.
 
 % Do you want to rereference the data at the import step (recommended)?
 % Since Biosemi does not record with reference, this improves signal

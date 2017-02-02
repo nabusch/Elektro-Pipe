@@ -10,11 +10,10 @@ EEG.data = double(EEG.data);
 % channels now.
 % --------------------------------------------------------------
 
-if isempty(S.replace_chans(who_idx)) | isnan(S.replace_chans(who_idx))
+if isempty(S.replace_chans(who_idx)) || isnan(S.replace_chans(who_idx))
     fprintf('No channels to replace.\n')
 else
     replace_chans = str2double(cell2mat(S.replace_chans(who_idx)));
-    
     for ichan = 1:size(replace_chans,1)
         bad_chan  = replace_chans(ichan, 1);
         good_chan = replace_chans(ichan, 2);
@@ -31,7 +30,7 @@ end
 % --------------------------------------------------------------
 % Delete unwanted channels and import channel locations.
 % --------------------------------------------------------------
-[EEG, com] = pop_select(EEG, 'channel', cfg.data_chans);
+[EEG, com] = pop_select(EEG, 'channel', cfg.data_urchans);
 EEG = eegh(com, EEG);
 
 %     The following step should be unnecessary if the data were recorded
@@ -151,29 +150,73 @@ end
 % structure.
 %[EEG] = pop_selectevent( EEG, 'type', [cfg.trig_target,cfg.trig_omit] , ...
 %    'deleteevents','on','deleteepochs','on','invertepochs','off');
-
 [EEG, ~, com] = pop_epoch( EEG, cellstr(num2str(cfg.trig_target')), [cfg.epoch_tmin cfg.epoch_tmax], ...
     'newname', 'BDF file epochs', 'epochinfo', 'yes');
 EEG = eegh(com, EEG);
 
 % Optional: remove all epochs containing triggers specified in CFG.trig_omit
-if ~isempty(cfg.trig_omit)
+%           || not containing all triggers in CFG.trig_omit_inv
+if ~isempty(cfg.trig_omit) || ~isempty(cfg.trig_omit_inv)
     rejidx = zeros(1,length(EEG.epoch));
     if cfg.coregister_Eyelink %coregistered triggers contain strings
         for i=1:length(EEG.epoch)
-            if sum(ismember(num2str(cfg.trig_omit(:)),EEG.epoch(i).eventtype(:)))>=1 || ismember(i,[cfg.trial_omit])
+            if sum(ismember(num2str(cfg.trig_omit(:)),EEG.epoch(i).eventtype(:)))>=1 ||...
+                    ismember(i,[cfg.trial_omit]) ||...
+                    (~isempty(cfg.trig_omit_inv) &&...
+                    ~all(ismember(num2str(cfg.trig_omit_inv(:)),EEG.epoch(i).eventtype(:))))
                 rejidx(i) =  1;
             end
         end
     else
         for i=1:length(EEG.epoch)
-            if sum(ismember(cfg.trig_omit,[EEG.epoch(i).eventtype{:}]))>=1 || ismember(i,[cfg.trial_omit])
+            if sum(ismember(cfg.trig_omit,[EEG.epoch(i).eventtype{:}]))>=1 ||...
+                    ismember(i,[cfg.trial_omit]) ||...
+                    (~isempty(cfg.trig_omit_inv) &&...
+                    ~all(ismember(cfg.trig_omit_inv,[EEG.epoch(i).eventtype{:}])))
                 rejidx(i) =  1;
             end
         end
     end
     EEG = pop_rejepoch(EEG, rejidx, 0);
     EEG = eegh(com, EEG);
+end
+
+%---------------------------------------------------------------
+% Optional: check latencies of specific triggers within epochs
+%---------------------------------------------------------------
+if ~isempty(cfg.checklatency)
+    %find all latencies
+    badtrls = [];
+    tridx = 0;
+    for iTrigger = cfg.checklatency
+        tridx=tridx+1;
+        for iEpoch=1:length(EEG.epoch)
+            if cfg.coregister_Eyelink
+                idx = strcmp(num2str(iTrigger),EEG.epoch(iEpoch).eventtype);
+            else
+                idx = [EEG.epoch(iEpoch).eventtype]==iTrigger;
+            end
+            if any(idx)
+                trigLatency(tridx,iEpoch) = EEG.epoch(iEpoch).eventlatency(idx);
+            else
+                trigLatency(tridx,iEpoch) = {9e+99}; %in the rare case that the current trigger does not appear in the epoch
+            end
+        end
+        badtrls = [badtrls,find([trigLatency{tridx,:}]-median([trigLatency{tridx,:}])>3)];
+    end
+    EEG.latencyBasedRejection = badtrls;
+    %create a plot and store which trials look weird. These can later be
+    %deleted after coregistration with behavioral data.
+    set(0,'DefaultFigureVisible','off');
+    figure;
+    for iPlot=1:length(cfg.checklatency)
+        subplot(ceil(length(cfg.checklatency)/3),3,iPlot);
+        histogram([trigLatency{iPlot,:}]);
+        xlabel('[ms]');ylabel('N trials');
+        title(['Trigger ',num2str(cfg.checklatency(iPlot))]);
+    end
+    set(0,'DefaultFigureVisible','on');
+    
 end
 
 
