@@ -40,9 +40,12 @@ for isub = 1:length(who_idx)
         fprintf('You chose to use eyetracking data to select ICA-components. To do so, use ''Eyegaze_X'' and ''Eyegaze_Y'' instead of HEOG and VEOG.\nSelect ''correlation with other channel(s)'' and insert ''Blinks''...\n');
     end
     [EEG, com] = SASICA(EEG);
+    
     %%
     keyboard;
+    EEG = evalin('base','EEG'); %SASICA stores the results in base workspace via assignin. So we have to use this workaround...
     EEG = eegh(com,EEG);
+
     %%
     [EEG, com] = pop_subcomp(EEG, find(EEG.reject.gcompreject),1);
     if isempty(com)
