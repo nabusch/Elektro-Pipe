@@ -1,4 +1,4 @@
-function EEG = prep01_preproc(EP)
+function [] = prep01_preproc(EP)
 
 % Written by Niko Busch - WWU Muenster (niko.busch@gmail.com)
 [cfg_dir, cfg_name, ~] = fileparts(EP.cfg_file);
@@ -11,34 +11,39 @@ S = readtable(EP.st_file);
 EP.S = S;
 who_idx = get_subjects(EP);
 
+%load CFG files. This need to happen outside parfor because of eval.
+ALLCFG = cell(1,length(who_idx));
 for isub = 1:length(who_idx)
-    
-    EEG = [];
-
     % Load CFG file. I know, eval is evil, but this way we allow the user
     % to give the CFG function any arbitrary name, as defined in the EP
     % struct.
-    evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', S);'];
+    evalstring = ['ALLCFG{',num2str(isub),'} = ' cfg_name '(' num2str(who_idx(isub)) ', S);'];
     eval(evalstring);
+end
+
+%run in parallel over subjects. Note that this disables direct output of
+%the EEG struct to the caller.
+parfor isub = 1:length(who_idx)
     
+    EEG = [];
     
+    CFG = ALLCFG{isub};
     % Write a status message to the command line.
     fprintf('\nNow importing subject %s, (number %d of %d to process).\n\n', ...
-        CFG.subject_name, isub, length(who_idx));    
+        CFG.subject_name, isub, length(who_idx));
     
     % Create output directory if necessary.
     if ~isdir(CFG.dir_eeg)
         mkdir(CFG.dir_eeg);
-    end 
-
+    end
+    
     
     % --------------------------------------------------------------
     % Import Biosemi raw data.
     % --------------------------------------------------------------
     bdfname = [CFG.dir_raw CFG.subject_name '.bdf'];
-    if ~exist(bdfname)
-        fprintf('%s Does not exist!\n', bdfname)
-        return
+    if ~exist(bdfname,'file')
+        error('%s Does not exist!\n', bdfname)
     else
         fprintf('Importing %s\n', bdfname)
         EEG = pop_fileio(bdfname);
@@ -54,8 +59,8 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Import behavioral data .
     % --------------------------------------------------------------
-    EEG = func_importBehavior(EEG, CFG);   
-
+    EEG = func_importBehavior(EEG, CFG);
+    
     % --------------------------------------------------------------
     % Create quality plots
     % --------------------------------------------------------------
@@ -71,19 +76,19 @@ for isub = 1:length(who_idx)
         print(h(i), [CFG.dir_eeg CFG.subject_name '_QualityPlots'], '-dpsc','-append','-fillpage');
     end
     close all;
-
+    
     % --------------------------------------------------------------
     % Save data.
     % --------------------------------------------------------------
     [EEG, com] = pop_editset(EEG, 'setname', [CFG.subject_name ' import']);
     EEG = eegh(com, EEG);
     EEG = pop_saveset( EEG, [CFG.subject_name  '_import.set'] , CFG.dir_eeg);
-
-    S.has_import(who_idx) = 1;
-    writetable(S, EP.st_file)
     
 end
 
+%write information to progress excel file
+S.has_import(who_idx) = 1;
+writetable(S, EP.st_file)
 
 
 fprintf('Done.\n')

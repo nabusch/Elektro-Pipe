@@ -194,7 +194,11 @@ if ~isempty(cfg.checklatency)
             if cfg.coregister_Eyelink
                 idx = strcmp(num2str(iTrigger),EEG.epoch(iEpoch).eventtype);
             else
-                idx = [EEG.epoch(iEpoch).eventtype]==iTrigger;
+                if iscell(EEG.epoch(iEpoch).eventtype)
+                    idx = cell2mat(EEG.epoch(iEpoch).eventtype)==iTrigger;
+                else
+                    idx = [EEG.epoch(iEpoch).eventtype]==iTrigger;
+                end
             end
             if any(idx)
                 trigLatency(tridx,iEpoch) = EEG.epoch(iEpoch).eventlatency(idx);

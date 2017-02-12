@@ -32,7 +32,7 @@ EP.who = [1:10]; % Vector of numerical indices.
 % EP.who = S.Name(find(S.ICA==0 | S.prep4ICA==1));
 
 %% Import and automatic preprocessing.
-EEG = prep01_preproc(EP);
+prep01_preproc(EP);
 
 %% Semi-automatic preparation for ICA.
 prep02_cleanbeforeICA;

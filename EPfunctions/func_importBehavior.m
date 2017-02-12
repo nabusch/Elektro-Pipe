@@ -90,6 +90,9 @@ end
 if length(EEG.epoch) ~= ntrials
     w = sprintf('\nEEG file has %d trials, but Logfile has %d trials.\nYou should check this!', ...
         length(EEG.epoch), ntrials);
+		fid = fopen([cfg.dir_eeg,'ErrorInImportBehavior.txt'], 'wt');
+		fprintf(fid, w);
+        fclose(fid);
     warning(w)
 end
 
