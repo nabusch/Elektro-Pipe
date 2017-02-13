@@ -141,10 +141,9 @@ for idesign = 1:length(EP.design_idx)
         % start parallel pool for parfor loop
         %--------------------------------------------------------------
         try
-            N_physical_cores = feature('numCores');
-            p                = gcp('nocreate');
+            p  = gcp('nocreate');
             if isempty(p)
-                parpool('local',N_physical_cores);
+                parpool('local');
             end
         catch ME
             fprintf(2,['Starting a parallel-pool failed. This could be due',...
