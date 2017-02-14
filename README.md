@@ -3,7 +3,7 @@
 A collection of code for a processing pipeline for elektroenkephalography (EEG) data. These tools do not actually contain any new signal processing tools. They are simply intended to make your life easier when working with a lot of datasets.
 
 Installation:
-- download and run [ElektroSetup.m](https://github.com/nabusch/Elektro-Pipe/blob/master/ElektroSetup.m) OR clone this repository and then run ElektroSetup.m
+- download and run [ElektroSetup.m](https://raw.githubusercontent.com/nabusch/Elektro-Pipe/master/ElektroSetup.m) OR clone this repository and then run ElektroSetup.m
 
 What you need:
 - EEGLAB

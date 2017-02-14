@@ -189,15 +189,18 @@ if setupProj
     EPsubdir=which('prep01_preproc');
     EPonPath=isempty(EPsubdir);
     if ~EPonPath && ~exist('EPdir','var')
-        msgbox('Please specify where you installed Elektro-Pipe', 'ElektroSetup');
+        h = msgbox('Please specify where you installed Elektro-Pipe', 'ElektroSetup');
+        uiwait(h);
         EPdir = uigetdir;
     elseif EPonPath && ~exist('EPdir','var')
         %best guess...
         EPdir = EPsubdir(1:(strfind(EPsubdir,'prep01_preproc')-1));
     end
-        msgbox('Please select a location for your new project', 'ElektroSetup');
+        h= msgbox('Please select a location for your new project', 'ElektroSetup');
+        uiwait(h);
         ProjLoc = uigetdir;
         ProjNam = inputdlg('What''s your project''s name?','ElektroSetup');
+        ProjNam = ProjNam{:};
         choice = questdlg('Do you want to analyze eyetracking data as well?','ElektroSetup','yes','no','yes');
         %create folder-structure
         mkdir([ProjLoc,filesep,ProjNam]);
@@ -214,8 +217,8 @@ if setupProj
         end
         %copy sample files files
         sampleFiles = dir([EPdir,filesep,'private',filesep,'Sample files']);
-        for file = {sampleFiles.name}
-            copyfile([EPdir,filesep,'private',filesep,'Sample files',filesep,file],...
+        for file = {sampleFiles(3:end).name} %1&2 are . & ..
+            copyfile([EPdir,filesep,'private',filesep,'Sample files',filesep,file{:}],...
                 [ProjLoc,filesep,ProjNam,filesep,'Analysis',filesep,'EEG']);
         end
 
