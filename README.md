@@ -2,10 +2,13 @@
 
 A collection of code for a processing pipeline for elektroenkephalography (EEG) data. These tools do not actually contain any new signal processing tools. They are simply intended to make your life easier when working with a lot of datasets.
 
+Installation:
+- download and run ElektroSetup.m OR clone this repository and then run ElektroSetup.m
+
 What you need:
 - EEGLAB
 - plugins: Cleanline, SASICA
-- SubjectsTable.xlsx: An Excel spreadsheet containing a list of your subjects and information about these datasets. Matlab claims to be able read also .odt files, but at least on our machine this does not work. 
+- SubjectsTable.xlsx (a sample is included in this repository): An Excel spreadsheet containing a list of your subjects and information about these datasets. Matlab claims to be able read also .odt files, but at least on our machine this does not work. 
 Important columns in this table are:
 
     Name: several funcions expect this column, which contains a name, code or pseudonym for each dataset.
