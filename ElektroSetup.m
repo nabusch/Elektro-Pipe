@@ -12,7 +12,9 @@ choice = questdlg('What would you like to do?', ...
 switch choice
     case 'Install Elektro-Pipe'
         installEP = 1;
+        setupProj = 0;
     case 'Setup a new project'
+        installEP = 0;
         setupProj = 1;
     case 'Both'
         installEP = 1;
@@ -32,7 +34,7 @@ if installEP
             downloadEP = 1;
             EPdir = uigetdir;
         case 'I already downloaded Elektro-Pipe'
-            choice2 = questdlg('Please specify where you installed Elektro-Pipe', 'ElektroSetup', ...
+            choice2 = questdlg('Please specify where you installed Elektro-Pipe (should end on ../Elektro-Pipe/)', 'ElektroSetup', ...
                 pwd,'Select another folder',pwd);
             switch choice2
                 case pwd
