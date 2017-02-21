@@ -75,10 +75,10 @@ if strcmp(cond,'all')
     for d=1:dims
         conds{d} = maxdim(d);
     end
-elseif iscell(cond) && length(cond)==dims
+elseif iscell(cond) && (length(cond)==dims || (length(cond)==1 && size(TF,1)==1)) %everything after || is the 1-factor case which will have ndims 1xLevel = 3
     conds = cond;
 else
-    error('Please provide condition indeces as cell (i.e., {dim1,dim2,..,dimN}).')
+    error('Please provide condition indeces as cell (i.e., {dim1,dim2,..,dimN}).');
 end
 
 %extract the desired data
