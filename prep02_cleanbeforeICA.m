@@ -74,12 +74,31 @@ for isub = 1:length(who_idx)
     
     
     % ---------------------------------------------------------------------
-    %  Manual data inspection; mark electrodes for trial-wise interpolation.
+    % Manual data inspection; mark electrodes for trial-wise interpolation.
     % We have to interrupt programm execution with "keyboard" while the
     % rejection GUI is active. Continue by hitting the "Continue" button in
     % the Matlab editor menu bar.
     %  ---------------------------------------------------------------------
-    mypop_eegplot(EEG, 1, 1, 0,'submean','on', 'winlength', 15, 'winrej', plotRejThr);
+    
+    %color for the bipolar EOG and Eyetracking channels
+    %EEG
+    col = cell(1,length(EEG.chanlocs));
+    for ichan=1:length(CFG.data_chans)
+        col{ichan} = [0 0 0];
+    end
+    %EOG
+    for ichan=find(ismember({EEG.chanlocs.labels},{'VEOG','HEOG'}))
+        col{ichan} = [1 0 0];
+    end
+    %Eye
+    for ichan=find(ismember({EEG.chanlocs.labels},{'Eyegaze_X','Eyegaze_Y',...
+            'Pupil_Dilation'}))
+        col{ichan} = [0 1 0];
+    end
+    
+    
+    mypop_eegplot(EEG, 1, 1, 0,'submean','on', 'winlength', 15, 'winrej',...
+        plotRejThr,'color',col);
     
     % The following code is deprecated since I fugured out that I can pass these options
     % directly to mypop_eegplot.
