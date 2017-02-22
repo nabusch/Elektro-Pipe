@@ -74,7 +74,14 @@ fprintf('Now converting eyetracking file "%s" to ASCII...\n',curEDF);
 %only convert if .asc file doesn't exist yet
 if sum(ismember(existing_files,strcat(cfg.subject_name,'.asc')))==0
     % the -y parameter assures that the file is being overwritten each time.
-    [~,~] = eval(['system(''',edf2ascLoc,'edf2asc -y -input -p ',cfg.dir_eye,' ',curEDF,''')']);
+    try
+        [status,~] = eval(['system(''',edf2ascLoc,'edf2asc -y -input -p ',cfg.dir_eye,' ',curEDF,''')']);
+        if status~=255
+            error('this looks like the weird trailing slash error!')
+        end
+    catch %weird: for some cases this command does not work with trailing slash
+        [~,~] = eval(['system(''',edf2ascLoc,'edf2asc -y -input -p ',cfg.dir_eye(1:end-1),' ',curEDF,''')']);
+    end
 else
     warning(['Found file ''',cfg.subject_name,'.asc''. Using this file instead',...
         ' of converting again.'])
