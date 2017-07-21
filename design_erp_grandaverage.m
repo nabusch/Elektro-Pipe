@@ -45,11 +45,17 @@ if ~isfield(EP, 'who')
 end
 subjects_idx = get_subjects(EP);
 
+%% Decode which designs to process.
+if ~isfield(EP, 'design_idx') || isempty(EP.design_idx)
+    EP.design_idx = 1:length(EP.D); %default = all designs
+end
+
 %% Loop over all designs for which you want to compute grand averages.
 
 for idesign = 1:length(EP.design_idx)
     
     %
+    clear DINFO;
     thisdesign = EP.design_idx(idesign);
     
     DINFO = get_design_matrix(EP.D(thisdesign));
@@ -58,7 +64,13 @@ for idesign = 1:length(EP.design_idx)
     
     % Compose the file names of all conditions in this design.
     DINFO.condition_names = get_condition_names(EP.D(thisdesign), DINFO);
-    DINFO.condition_names = reshape(DINFO.condition_names, DINFO.nlevels+1);
+    %single factor case
+    if length(DINFO.nlevels)==1
+        reshapeSz = [1,DINFO.nlevels+1];
+    else
+        reshapeSz = DINFO.nlevels+1;
+    end
+    DINFO.condition_names = reshape(DINFO.condition_names, reshapeSz);
     DINFO.n_conditions = numel(DINFO.condition_names);
     DINFO = orderfields(DINFO);
     
