@@ -48,8 +48,8 @@ for isub = 1:length(who_idx)
     % ---------------------------------------------------------------------
     % If cfg file specifies channels for interpolation for this subject,
     % interpolate them now.
-    if iscell(EP.S.interp_chans)
-        interp_chans = str2num(EP.S.interp_chans{who_idx(isub)});
+    if ismember('interp_chans',EP.S.Properties.VariableNames)
+        interp_chans = EP.S.interp_chans(who_idx(isub));
     else
         interp_chans = [];
     end
@@ -88,7 +88,7 @@ for isub = 1:length(who_idx)
     end
     %EOG
     for ichan=find(ismember({EEG.chanlocs.labels},{'VEOG','HEOG'}))
-        col{ichan} = [1 0 0];
+        col{ichan} = [1 0.0784314 0.576471]; %"deeppink"
     end
     %Eye
     for ichan=find(ismember({EEG.chanlocs.labels},{'Eyegaze_X','Eyegaze_Y',...
