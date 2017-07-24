@@ -81,7 +81,11 @@ if installEP
     end
     % add Elektro-Pipe to startup.m
     EPdir = pwd;
-    setInitialWorkingFolder;
+    if verLessThan('matlab','9.1')
+        setInitialWorkingFolder;
+    else
+        cd(userpath);
+    end
     fid = fopen('startup.m','a');
     AppendStartup = 1;
     if fid==-1
