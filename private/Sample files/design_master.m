@@ -70,6 +70,15 @@ EP.design_idx = [];
 % Turn on/off command line messages as much as possible.
 EP.verbose = 0;
 
+% keep results in double precision or convert it to single (works only for
+% run_tf for now).
+EP.keepdouble = 0;
+
+% run CUDA GPU enabled fft. great speedup for Time-Frequency Analysis.
+% NVidia CUDA GPU with up-to-date drivers necessary.
+% NOT YET IMPLEMENTED
+EP.CUDA = 0;
+
 %% Run grandaverage for all designs and subejcts.
 % Required input:
 % EP: struct containing parameters for the computation. See above.
