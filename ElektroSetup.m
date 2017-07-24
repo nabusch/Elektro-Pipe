@@ -112,7 +112,11 @@ if installEP
     end
     
     %check if 16-bit triggers are installed.
-    setInitialWorkingFolder;
+    if verLessThan('matlab','9.1')
+        setInitialWorkingFolder;
+    else
+        cd(userpath);
+    end
     conts = dir;
     if ~ismember({'WM_utilities'},{conts.name})
         
