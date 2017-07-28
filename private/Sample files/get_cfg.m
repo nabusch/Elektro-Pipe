@@ -86,7 +86,7 @@ CFG.chanlocfile = 'Custom_M34_V3_Easycap_Layout_EEGlab.sfp';%standard-10-5-cap38
 % quality. This does not need ot be the postprocessing refrence you use for
 % subsequent analyses.
 CFG.do_preproc_reref    = 1;
-CFG.preproc_reference   = 31; % (31=Pz)
+CFG.preproc_reference   = 30; % (31=Pz@Biosemi,30=Pz@CustomM43Easycap)
 CFG.postproc_reference  = []; % empty = average reference
 
 % Do you want to have a new sampling rate?

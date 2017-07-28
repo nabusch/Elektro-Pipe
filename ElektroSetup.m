@@ -81,7 +81,11 @@ if installEP
     end
     % add Elektro-Pipe to startup.m
     EPdir = pwd;
-    setInitialWorkingFolder;
+    if verLessThan('matlab','9.1')
+        setInitialWorkingFolder;
+    else
+        cd(userpath);
+    end
     fid = fopen('startup.m','a');
     AppendStartup = 1;
     if fid==-1
@@ -108,7 +112,11 @@ if installEP
     end
     
     %check if 16-bit triggers are installed.
-    setInitialWorkingFolder;
+    if verLessThan('matlab','9.1')
+        setInitialWorkingFolder;
+    else
+        cd(userpath);
+    end
     conts = dir;
     if ~ismember({'WM_utilities'},{conts.name})
         
@@ -246,6 +254,8 @@ if setupProj
             'EEGlab might load the File-io plugin version that ships with it once loaded.\n'...
             'So better just add a line that addpath-es the manipulated file-io\n'...
             'after loading EEGlab.\n\n'...
+            '4. To replace a bad channel with an external electrode, indicate bad\n'...
+            'and good channel in the excel file. Format: BADCHANNR=GOODCHANNR\n\n'...
             'More in the future...\n\n'...
             'Wanja Moessing, moessing@wwu.de, July 2017\n\n'];
         fprintf(fid,readme);
