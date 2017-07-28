@@ -36,6 +36,11 @@ parfor isub = 1:length(who_idx)
     EEG = pop_loadset('filename', [CFG.subject_name '_CleanBeforeICA.set'] , ...
         'filepath', CFG.dir_eeg, 'loadmode', 'all');
     
+    % assure that data rae in double precision (this enhances ICA power)
+    if ~isa(EEG.data,'double')
+        fprintf('\nFound single precision data. Will convert to double precision for ICA...\n');
+        EEG.data = double(EEG.data);
+    end
     
     % -------------------------------------------------------------- 
     % Check how many components to extract and then run ICA. We need a
