@@ -149,7 +149,7 @@ if installEP
                         [status,command] = system('git pull --depth=1 origin master');
                         cd('../');
                 end
-                FileIOdir = [pwd,filesep,'WM_Utilities',filesep,'16_Bit_triggers'];
+                FileIOdir = [pwd,filesep,'WM_utilities',filesep,'16_Bit_triggers'];
             case 'It''s already installed'
                 choice2 = questdlg(['It''s useful to add this modified',...
                     ' file-io to you path at startup. Do you want to add it to startup.m now?'],...
