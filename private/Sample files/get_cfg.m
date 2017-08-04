@@ -123,6 +123,14 @@ CFG.rej_thresh_tmax = CFG.epoch_tmax;
 CFG.coregister_Eyelink = 0; %0=don't coregister
 % Do you want to use Eyetracking data instead of HEOG & VEOG for ICA?
 CFG.eye_ica            = 1;
+
+% Only if CFG.eye_ica is activated, you can opt to use an additional column
+% in Your EP-Excel sheet that is 1 for subjects where eyetracking data
+% should be used for ICA component selection and 0 for those where EOG
+% should be used instead. This makes sense, when Eyetracking data are very
+% noisy.
+CFG.eye_ica_useEP      = 1;
+
 % Coregistration is done by using the first instance of the first value and
 % the last instance of the second value. Everything inbetween is downsampled
 % and interpolated. In our lab triggers from the parallel port are s
