@@ -33,12 +33,15 @@ EP.who = [1:10]; % Vector of numerical indices.
 
 %% Import and automatic preprocessing.
 prep01_preproc(EP);
+%Send a notification via email when done
+%system(['echo "Import and automatic preprocessing done!" | mail -s "Elektropipe notification" email@address.com']);
 
 %% Semi-automatic preparation for ICA.
 prep02_cleanbeforeICA;
 
 %% Run ICA.
 EEG = prep03_runICA(EP);
+%system(['echo "All ICA computations done!" | mail -s "Elektropipe notification" email@address.com']);
 
 %% Reject ICA components.
 EEG = prep04_rejectICs(EP);
