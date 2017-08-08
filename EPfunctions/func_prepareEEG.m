@@ -206,7 +206,7 @@ if ~isempty(cfg.checklatency)
                 trigLatency(tridx,iEpoch) = {9e+99}; %in the rare case that the current trigger does not appear in the epoch
             end
         end
-        badtrls = [badtrls,find([trigLatency{tridx,:}]-median([trigLatency{tridx,:}])>3)];
+        badtrls = [badtrls,find([trigLatency{tridx,:}]-median([trigLatency{tridx,:}])>cfg.allowedlatency)];
     end
     EEG.latencyBasedRejection = badtrls;
     %create a plot and store which trials look weird. These can later be
@@ -219,6 +219,12 @@ if ~isempty(cfg.checklatency)
         xlabel('[ms]');ylabel('N trials');
         title(['Trigger ',num2str(cfg.checklatency(iPlot))]);
     end
+    suptitle(['Deleted ',num2str(length(EEG.latencyBasedRejection)), ' trials']);
+    %temporarily store how many trials have been deleted and add that to
+    %table.
+    fid = fopen([cfg.dir_eeg,filesep,'badlatency.txt'],'a');
+    fprintf(fid,num2str(length(EEG.latencyBasedRejection)));
+    fclose(fid);
     set(0,'DefaultFigureVisible','on');
     
 end

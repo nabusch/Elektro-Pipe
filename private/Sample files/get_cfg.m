@@ -60,10 +60,11 @@ CFG.badgaze_fieldname = 'badgaze';
 
 % Do you want to check the latencies of specific triggers within each
 % epoch?
-CFG.checklatency=[25 30 35];
-%Do you want to delete trials that differ by more than 3ms from the median
-%latency AFTER coregistration with behavoral data.
-CFG.deletebadlatency = 1;
+CFG.checklatency=[];
+CFG.allowedlatency = 3;
+% Do you want to delete trials that differ by more than CFG.allowedlatency ms
+% from the median latency AFTER coregistration with behavoral data?
+CFG.deletebadlatency = 0;
 %% Parameters for data import and preprocessing.
 
 % Indices of channels that contain data, including external electrodes, but not bipolar channels like VEOG, HEOG.

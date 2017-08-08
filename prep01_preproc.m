@@ -82,13 +82,22 @@ parfor isub = 1:length(who_idx)
     % --------------------------------------------------------------
     [EEG, com] = pop_editset(EEG, 'setname', [CFG.subject_name ' import']);
     EEG = eegh(com, EEG);
-    EEG = pop_saveset( EEG, [CFG.subject_name  '_import.set'] , CFG.dir_eeg);
+    pop_saveset( EEG, [CFG.subject_name  '_import.set'] , CFG.dir_eeg);
     
 end
 
 %write information to progress excel file
+if ALLCFG{end}.deletebadlatency
+    for isub = 1:length(who_idx)
+        CFG = ALLCFG{isub};
+        fid=fopen([CFG.dir_eeg,'badlatency.txt']);
+        val = fscanf(fid,'%i');
+        fclose(fid);
+        delete([CFG.dir_eeg,'badlatency.txt']);
+        S.N_BadLatencyRejections(who_idx(isub)) = val;
+    end
+end
 S.has_import(who_idx) = 1;
 writetable(S, EP.st_file)
-
 
 fprintf('Done.\n')
