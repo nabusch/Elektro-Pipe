@@ -1,7 +1,7 @@
 function [] = ElektroSetup()
 %ELEKTROSETUP installs Elektro-Pipe and/or creates a new working directory
 %
-% Wanja Moessing Feb 2016 moessing@wwu.de
+% Wanja Moessing Feb 2017 moessing@wwu.de
 
 URDIR = pwd;
 % Ask user what to do

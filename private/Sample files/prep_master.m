@@ -13,6 +13,14 @@ addpath(genpath('~/eeglab13_6_5b/'));
 % tmp = which('16_Bit_triggers/pop_fileio.m');
 % addpath(genpath(tmp(1:regexp(tmp,'pop_fileio.m')-1)));
 
+
+%%make sure we're in the proper directory, so all paths are relative to the
+%%location of this file (and hence system-independent)
+rootfilename    = which('prep_master.m');
+rootpath        = rootfilename(1:strfind(rootfilename,[filesep,'Analysis',filesep,'EEG']));
+cd(rootpath);
+addpath(genpath(rootpath));
+
 %-----------------------------------
 % specify location of getcfg.m & SubjectsTable.xlsx
 %-----------------------------------
@@ -31,14 +39,24 @@ EP.who = [1:10]; % Vector of numerical indices.
 % S = readtable(EP.st_file);
 % EP.who = S.Name(find(S.ICA==0 | S.prep4ICA==1));
 
-%% Import and automatic preprocessing.
-prep01_preproc(EP);
-
-%% Semi-automatic preparation for ICA.
+%% PREP-1: Import and automatic preprocessing.
+try
+    prep01_preproc(EP);
+    %Send a notification via email when done or throwing error
+    system(['echo "Import and automatic preprocessing done!" | mail -s "Elektropipe notification" email@address.com']);
+catch ME
+    system(['echo "',ME.message,'" | mail -s "Elektropipe notification" email@address.com']);
+end
+%% PREP-2: Semi-automatic preparation for ICA.
 prep02_cleanbeforeICA;
 
-%% Run ICA.
-EEG = prep03_runICA(EP);
-
-%% Reject ICA components.
-EEG = prep04_rejectICs(EP);
+%% PREP-3: Run ICA.
+try
+    prep03_runICA(EP);
+    %Send a notification via email when done or throwing error
+    system(['echo "All ICA computations done!" | mail -s "Elektropipe notification" email@address.com']);
+catch ME
+    system(['echo "',ME.message,'" | mail -s "Elektropipe notification" email@address.com']);
+end
+%% PREP-4: Reject ICA components.
+prep04_rejectICs(EP);
