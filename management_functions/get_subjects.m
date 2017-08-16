@@ -32,7 +32,7 @@ elseif iscell(EP.who) % If who is a set of field names and values
             subject_values(isnan(subject_values)) = 0;
         end
         
-        var_idx(ivar,:) = ismember(subject_values, req_values{:});
+        var_idx(ivar,:) = ismember(subject_values, req_values);
     end
     
     who_idx = find(all(var_idx, 1)); % select subjects who fullfill all criteria.
