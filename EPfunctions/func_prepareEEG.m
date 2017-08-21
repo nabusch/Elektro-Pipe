@@ -114,8 +114,8 @@ if cfg.do_hp_filter
 end
 
 if cfg.do_notch_filter
-    EEG = pop_eegfiltnew(EEG, CFG.notch_filter_lower,...
-                         CFG.notch_filter_upper, [], 1);
+    EEG = pop_eegfiltnew(EEG, cfg.notch_filter_lower,...
+                         cfg.notch_filter_upper, [], 1);
 end
 
 % --------------------------------------------------------------
