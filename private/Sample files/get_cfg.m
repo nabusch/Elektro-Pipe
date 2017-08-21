@@ -106,6 +106,12 @@ CFG.do_lp_filter = 1;
 CFG.lp_filter_limit = 100; 
 CFG.lp_filter_tbandwidth = 5;
 
+% Do you want to use a notch filter? Note that in most cases Cleanline
+% should be sufficient.
+CFG.do_notch_filter = 0;
+CFG.notch_filter_lower = 49;
+CFG.notch_filter_upper = 51;
+
 % Do you want to use cleanline to remove 50Hz noise?
 CFG.do_cleanline = 1;
 
