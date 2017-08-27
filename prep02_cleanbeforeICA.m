@@ -157,7 +157,7 @@ for isub = 1:length(who_idx)
     
     global eegrej
     mypop_eegplot(EEG, 1, 1, 0,'submean','on', 'winlength', 15, 'winrej',...
-        plotRejThr,'color',col,'command','global eegrej, eegrej=TMPREJ');
+        plotRejThr,'color',col,'command','global eegrej, eegrej = TMPREJ');
     
     
     % The following code is deprecated since I fugured out that I can pass these options
@@ -172,12 +172,13 @@ for isub = 1:length(who_idx)
     disp('"Update marks", and hit "Continue" in Matlab editor menu')
     keyboard
     
-    trials_to_delete = find(eegplot2trial(eegrej,EEG.pnts,length(EEG.epoch)));
+    [badtrls, badChnXtrl] = eegplot2trial(eegrej,EEG.pnts,length(EEG.epoch));
+    trials_to_delete = find(badtrls);
     clear eegrej;
     % ---------------------------------------------------------------------
     %  Execute interpolation and rejection and save data.
     %  ---------------------------------------------------------------------
-    [EEG, com] = pop_selectiveinterp(EEG);
+    [EEG, com] = pop_selectiveinterp(EEG,badChnXtrl);
     EEG = eegh(com,EEG);
     [EEG, com] = pop_rejepoch(EEG, trials_to_delete, 1);
     EEG = eegh(com,EEG);
