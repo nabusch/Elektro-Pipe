@@ -1,6 +1,8 @@
 function [CFG, S] = get_cfg(idx, S)
 
-%% Read info for this subject and get file names and dirctories.
+%% ------------------------------------------------------------------------
+% Read info for this subject and get file names and dirctories.
+% -------------------------------------------------------------------------
 rootfilename    = which('get_cfg.m');
 rootpath        = rootfilename(1:regexp(rootfilename,[filesep,'Analysis',filesep,'EEG',filesep,'get_cfg.m']));
 
@@ -8,16 +10,18 @@ CFG.dir_main = rootpath;
 
 if nargin>0                
     CFG.subject_name  = char(S.Name(idx));
-    CFG.dir_behavior  = [CFG.dir_main 'Logfiles/'];
-    CFG.dir_raw       = [CFG.dir_main 'BDF/'];
-    CFG.dir_raweye    = [CFG.dir_main 'EDF/'];
-    CFG.dir_eeg       = [CFG.dir_main 'EEG/' CFG.subject_name filesep]; 
-    CFG.dir_eye       = [CFG.dir_main 'EYE/' CFG.subject_name filesep]; 
-    CFG.dir_tf        = [CFG.dir_main 'TF/' CFG.subject_name filesep]; 
-    CFG.dir_filtbert  = [CFG.dir_main 'Filtbert/' CFG.subject_name filesep];    
+    CFG.dir_behavior  = [CFG.dir_main 'Logfiles' filesep];
+    CFG.dir_raw       = [CFG.dir_main 'BDF' filesep];
+    CFG.dir_raweye    = [CFG.dir_main 'EDF' filesep];
+    CFG.dir_eeg       = [CFG.dir_main 'EEG' filesep CFG.subject_name filesep]; 
+    CFG.dir_eye       = [CFG.dir_main 'EYE' filesep CFG.subject_name filesep]; 
+    CFG.dir_tf        = [CFG.dir_main 'TF' filesep CFG.subject_name filesep]; 
+    CFG.dir_filtbert  = [CFG.dir_main 'Filtbert' filesep CFG.subject_name filesep];    
 end
 
-%% Data organization and content.
+%% ------------------------------------------------------------------------
+% Data organization and content.
+% -------------------------------------------------------------------------
 
 % Triggers that mark stimulus onset. These events will be used for
 % epoching.
@@ -65,9 +69,13 @@ CFG.allowedlatency = 3;
 % Do you want to delete trials that differ by more than CFG.allowedlatency ms
 % from the median latency AFTER coregistration with behavoral data?
 CFG.deletebadlatency = 0;
-%% Parameters for data import and preprocessing.
 
-% Indices of channels that contain data, including external electrodes, but not bipolar channels like VEOG, HEOG.
+%% ------------------------------------------------------------------------
+% Parameters for data import and preprocessing.
+% -------------------------------------------------------------------------
+
+% Indices of channels that contain data, including external electrodes, 
+% but not bipolar channels like VEOG, HEOG.
 CFG.data_urchans = [1:64,69];%[1,3:15,17:50,52:63]; 
 
 % Indices of channels that contain data after rejecting the channels not
@@ -87,7 +95,7 @@ CFG.chanlocfile = 'Custom_M34_V3_Easycap_Layout_EEGlab.sfp';%standard-10-5-cap38
 % quality. This does not need ot be the postprocessing refrence you use for
 % subsequent analyses.
 CFG.do_preproc_reref    = 1;
-CFG.preproc_reference   = 30; % (31=Pz@Biosemi,32=Pz@CustomM43Easycap)
+CFG.preproc_reference   = []; % (31=Pz@Biosemi,32=Pz@CustomM43Easycap)
 CFG.postproc_reference  = []; % empty = average reference
 
 % Do you want to have a new sampling rate?
@@ -106,9 +114,8 @@ CFG.do_lp_filter = 1;
 CFG.lp_filter_limit = 100; 
 CFG.lp_filter_tbandwidth = 5;
 
-% Do you want to use a notch filter? Note that in most cases Cleanline
-% should be sufficient.
-CFG.do_notch_filter = 0;
+% Do you want to notch-filter the data? (Cleanline should be sufficient in most cases)
+CFG.do_notch_filter = 1;
 CFG.notch_filter_lower = 49;
 CFG.notch_filter_upper = 51;
 
@@ -119,28 +126,60 @@ CFG.do_cleanline = 1;
 % function).?
 CFG.do_detrend = 0;
 
-% Do you want to reject trials based on amplitude criterion? 
+%% Artifact detection parameters
+% set all the CFG.do_rej_* to 0 to deactivate automatic artifact
+% detection/rejection.
+
+% In case you use automatic artifact detection, do you want to
+% automatically delete detected trials or inspect them after deletion?
+CFG.rej_auto = 0;
+
+% Do you want to reject trials based on amplitude criterion? (automatic and
+% manual)
 CFG.do_rej_thresh   = 1;
 CFG.rej_thresh      = 500;
 CFG.rej_thresh_tmin = CFG.epoch_tmin;
 CFG.rej_thresh_tmax = CFG.epoch_tmax;
+
+% Do you want to reject trials based on slope?
+CFG.do_rej_trend       = 1;
+CFG.rej_trend_winsize  = CFG.new_sampling_rate * abs(CFG.epoch_tmin - CFG.epoch_tmax);
+CFG.rej_trend_maxSlope = 30;
+CFG.rej_trend_minR     = 0; %0 = just slope criterion
+
+% Do you want to reject trials based on joint probability?
+CFG.do_rej_prob         = 1;
+CFG.rej_prob_locthresh  = 6;
+CFG.rej_prob_globthresh = 3; 
+
+% Do you want to reject trials based on kurtosis?
+CFG.do_rej_kurt         = 1;
+CFG.rej_kurt_locthresh  = 8;
+CFG.rej_kurt_globthresh = 4; 
+
+
+% The SubjectsTable.xlsx contains a column "interp_chans". Do you want to
+% interpolate these channels in prep02 (i.e., prior to ICA)?
+CFG.do_interp = 0;
+
+% ...If not interpolating, do you want to ignore those channels in
+% automatic artifact detection methods? 1 = use only the other channels.
+CFG.ignore_interp_chans = 1;
 
 %% Eyelink related input
 % Do you want to coregister eyelink eyetracking data?
 CFG.coregister_Eyelink = 0; %0=don't coregister
 % Do you want to use Eyetracking data instead of HEOG & VEOG for ICA?
 CFG.eye_ica            = 1;
-
 % Only if CFG.eye_ica is activated, you can opt to use an additional column
 % in Your EP-Excel sheet that is 1 for subjects where eyetracking data
 % should be used for ICA component selection and 0 for those where EOG
 % should be used instead. This makes sense, when Eyetracking data are very
 % noisy.
 CFG.eye_ica_useEP      = 1;
-
 % Coregistration is done by using the first instance of the first value and
 % the last instance of the second value. Everything inbetween is downsampled
-% and interpolated. In our lab triggers from the parallel port are s
+% and interpolated.
 CFG.eye_startEnd       = [];
 
 % After data has been coregistered, eyetracking data will be included in
@@ -153,7 +192,7 @@ CFG.eye_keepfiles      = [0 0];
 CFG.ica_type = 'binica';
 CFG.ica_extended = 1; % Run extended infomax ICA?
 CFG.ica_chans = CFG.data_chans; % Typicaly, ICA is computed on all channels, unless one channel is not really EEG.
-CFG.ica_ncomps = 65; %[numel(CFG.data_chans)-3]; % if ica_ncomps==0, determine data rank from the ...
+CFG.ica_ncomps = numel(CFG.data_chans)-3; % if ica_ncomps==0, determine data rank from the ...
 % data (EEGLAB default). Otherwise, use a fixed number of components. Note: subject-specific
 % settings will override this parameter.
 
