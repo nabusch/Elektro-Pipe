@@ -223,7 +223,15 @@ if ~isempty(cfg.checklatency)
         xlabel('[ms]');ylabel('N trials');
         title(['Trigger ',num2str(cfg.checklatency(iPlot))]);
     end
-    suptitle(['Deleted ',num2str(length(EEG.latencyBasedRejection)), ' trials']);
+    
+    % suptitle is nice to have but not necessary and only available in the
+    % Bioinformatics Toolbox
+    v = ver;
+    if ismember('Bioinformatics Toolbox',{v.Name})
+        suptitle(['Deleted ',num2str(length(EEG.latencyBasedRejection)),...
+            ' trials']);
+    end
+    
     %temporarily store how many trials have been deleted and add that to
     %table.
     fid = fopen([cfg.dir_eeg,filesep,'badlatency.txt'],'a');
