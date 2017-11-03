@@ -57,6 +57,7 @@ for isub = 1:length(who_idx)
                 'instead of HEOG and VEOG.\nSelect ''correlation with'...
                 'other channel(s)'' and insert ''Blinks''...\n']);
         end
+    end
     [EEG, com] = SASICA(EEG);
     %[EEG,com] = SASICA(EEG,'MARA_enable',0,'FASTER_enable',0,'FASTER_blinkchans','Blinks','ADJUST_enable',0,'chancorr_enable',1,'chancorr_channames',71,'chancorr_corthresh','auto 4','EOGcorr_enable',1,'EOGcorr_Heogchannames',66,'EOGcorr_corthreshH','auto 4','EOGcorr_Veogchannames',67,'EOGcorr_corthreshV','auto 4','resvar_enable',0,'resvar_thresh',15,'SNR_enable',0,'SNR_snrcut',1,'SNR_snrBL',[-Inf 0] ,'SNR_snrPOI',[0 Inf] ,'trialfoc_enable',1,'trialfoc_focaltrialout','auto','focalcomp_enable',1,'focalcomp_focalICAout','auto','autocorr_enable',1,'autocorr_autocorrint',20,'autocorr_dropautocorr','auto','opts_noplot',0,'opts_nocompute',0,'opts_FontSize',14);
     %%

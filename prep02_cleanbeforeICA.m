@@ -7,7 +7,7 @@
 % Note that the script requires that you have a running instance of eeglab.
 % Open eeglab using
 % [ALLEEG EEG CURRENTSET ALLCOM] = eeglab('nogui');
-% Wanja Moessing, WWU Münster, moessing@wwu.de
+% Wanja Moessing, WWU Mï¿½nster, moessing@wwu.de
 
 %% get configuration
 [cfg_dir, cfg_name, ~] = fileparts(EP.cfg_file);
@@ -125,8 +125,16 @@ for isub = 1:length(who_idx)
     % proper indeces
     UsedChans = CFG.data_chans;
     if CFG.ignore_interp_chans
-        UsedChans = UsedChans(~ismember(UsedChans,interp_chans));
+        UsedChans = setdiff(UsedChans,interp_chans);
     end
+    if strcmp(CFG.preproc_reference, 'robust')
+        % exclude the artificial robust reference channel and those
+        % channels detected as bad.
+        UsedChans = setdiff(UsedChans,...
+            [EEG.robustRef.badChannels.all,...
+            find(strcmp({EEG.chanlocs.labels},'RobustRef'))]);
+    end
+    
     % ---------------------------------------------------------------------
     % 1. Amplitude criterion
     %    Thresholds should usually be higher than blinks, to delete very
@@ -138,7 +146,7 @@ for isub = 1:length(who_idx)
             '...\n================================================\n']);
         EEG = pop_eegthresh(EEG, 1, UsedChans, ...
             -CFG.rej_thresh, CFG.rej_thresh, ...
-            CFG.rej_thresh_tmin, CFG.rej_thresh_tmax, 1, CFG.rej_auto);
+            CFG.rej_thresh_tmin, CFG.rej_thresh_tmax, 1, 0);
     end
     plotRej.thr = trial2eegplot(EEG.reject.rejthresh, EEG.reject.rejthreshE,...
         EEG.pnts, EEG.reject.rejthreshcol);
@@ -153,9 +161,7 @@ for isub = 1:length(who_idx)
             'Searching for abnormal trends (auto artifact detection)',...
             '...\n================================================\n']);
         EEG = pop_rejtrend(EEG, 1, UsedChans, CFG.rej_trend_winsize,...
-            CFG.rej_trend_maxSlope, CFG.rej_trend_minR, 1, CFG.rej_auto, 0);
-        trial2eegplot(EEG.reject.rejconst, EEG.reject.rejconstE,...
-            EEG.pnts, EEG.reject.rejconstcol);
+            CFG.rej_trend_maxSlope, CFG.rej_trend_minR, 1, 0, 0);
     end
     plotRej.trend = trial2eegplot(EEG.reject.rejconst, EEG.reject.rejconstE,...
         EEG.pnts, EEG.reject.rejconstcol);
@@ -165,7 +171,8 @@ for isub = 1:length(who_idx)
     %    that are highly improbable.
     % ---------------------------------------------------------------------
     if CFG.do_rej_prob
-        if ~isempty(CFG.preproc_reference)
+        if ~isempty(CFG.preproc_reference) && ...
+                ~strcmp(CFG.preproc_reference, 'robust')
             error(sprintf([...
                 'Average reference is mandatory for artifact detection',...
                 ' via joint probability.\nConsider changing your CFG.']));
@@ -173,11 +180,27 @@ for isub = 1:length(who_idx)
         fprintf(['\n================================================\n',...
             'Detecting improbable data (auto artifact detection)',...
             '...\n================================================\n']);
-        EEG = pop_jointprob(EEG, 1, UsedChans, CFG.rej_prob_locthresh,...
-            CFG.rej_prob_globthresh, 1, CFG.rej_auto);
+        
+        % During its initial run, pop_jointprob ignores the channel
+        % argument. We thus create a temporary subset and identify bad
+        % epochs in that.
+        JP_EEG = pop_select(EEG, 'channel', UsedChans);
+        JP_EEG = pop_jointprob(JP_EEG, 1, 1:JP_EEG.nbchan,...
+            CFG.rej_prob_locthresh, CFG.rej_prob_globthresh,...
+            1, 0);
     end
-    plotRej.jp = trial2eegplot(EEG.reject.rejjp, EEG.reject.rejjpE,...
-        EEG.pnts, EEG.reject.rejjpcol);
+    if CFG.do_rej_prob
+        % Subsequently, use the information we gathered and apply it to the
+        % original dataset.
+         tmp = trial2eegplot(JP_EEG.reject.rejjp,...
+            JP_EEG.reject.rejjpE, JP_EEG.pnts, JP_EEG.reject.rejjpcol);
+        out = size(tmp);
+        plotRej.jp = zeros(out(1),EEG.nbchan+5); %1st 5 columns aren't chans
+        plotRej.jp(:,[1:5,UsedChans+5]) = tmp;
+    else
+        plotRej.jp = trial2eegplot(EEG.reject.rejjp,...
+            EEG.reject.rejjpE, EEG.pnts, EEG.reject.rejjpcol);
+    end
     % ---------------------------------------------------------------------
     % 4. Reject abnormally distributed data
     %    This is based on kurtosis (peakiness). Data with very high or very
@@ -188,13 +211,26 @@ for isub = 1:length(who_idx)
             'Detecting abnormally distributed data (auto artifact detection)',...
             '...\n================================================\n']);
         EEG = pop_rejkurt(EEG, 1, UsedChans, CFG.rej_kurt_locthresh,...
-            CFG.rej_kurt_globthresh, 1, CFG.rej_auto);
+            CFG.rej_kurt_globthresh, 1, 0);
     end
     plotRej.kurt = trial2eegplot(EEG.reject.rejkurt, EEG.reject.rejkurtE,...
         EEG.pnts, EEG.reject.rejkurtcol);
     
     % combine info for plotting
     plotRejshow = [plotRej.jp; plotRej.kurt; plotRej.thr; plotRej.trend];
+    
+    %combine info for auto-removing epochs
+    if CFG.rej_auto
+        finames = fieldnames(plotRej);
+        deleteme = zeros(1,EEG.trials);
+        for i = 1:length(finames)
+            tmp = eegplot2trial(plotRej.(finames{i}),...
+                EEG.pnts, EEG.trials);
+            deleteme = deleteme | tmp;
+        end
+        EEG = pop_rejepoch(EEG, JP_EEG.reject.rejjp, 0);
+    end
+    
     
     %% ---------------------------------------------------------------------
     % Optional:
@@ -211,6 +247,13 @@ for isub = 1:length(who_idx)
         for ichan=1:length(CFG.data_chans)
             col{ichan} = [0 0 0];
         end
+        
+        %In case a robust reference is used
+        for ichan = find(ismember({EEG.chanlocs.labels},{'RobustRef'}))
+            col{ichan} = [0.2588 0.9569 0.5961]; %"lime"
+        end
+        
+        
         %EOG
         for ichan=find(ismember({EEG.chanlocs.labels},{'VEOG','HEOG'}))
             col{ichan} = [1 0.0784314 0.576471]; %"deeppink"

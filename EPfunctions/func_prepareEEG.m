@@ -115,7 +115,7 @@ end
 
 if cfg.do_notch_filter
     EEG = pop_eegfiltnew(EEG, cfg.notch_filter_lower,...
-                         cfg.notch_filter_upper, [], 1);
+        cfg.notch_filter_upper, [], 1);
 end
 
 % --------------------------------------------------------------
@@ -123,9 +123,41 @@ end
 % channels.
 % --------------------------------------------------------------
 if cfg.do_preproc_reref
-    [EEG, com] = pop_reref( EEG, cfg.preproc_reference, ...
-        'keepref','on', ...
-        'exclude', cfg.data_chans(end)+1:EEG.nbchan);
+    %robust average (requires PREP extension)
+    if strcmp(cfg.preproc_reference, 'robust')
+        %%settings for robust average reference
+        
+        % don't use channels as evaluation channels, of which we already
+        % know that they are bad.
+        evalChans = find(~ismember(...
+            {EEG.chanlocs(cfg.data_chans).labels},...
+            strsplit(S.interp_chans{who_idx},',')));
+        
+        robustParams = struct('referenceChannels', evalChans,...
+            'evaluationChannels', evalChans,...
+            'rereference', cfg.data_chans,...
+            'interpolationOrder', 'post-reference',...
+            'correlationThreshold', 0.1e-99,...
+            'ransacOff', true); %disable correlation threshold, as we don't want to detect half of the channels.
+        
+        % compute reference channel
+        [~,robustRef] = performReference(EEG, robustParams);
+        % add new robust reference channel to EEG
+        EEG.data(end+1,:) = robustRef.referenceSignal;
+        EEG.nbchan = size(EEG.data,1);
+        EEG.chanlocs(end+1).labels = 'RobustRef';
+        EEG.robustRef = robustRef;
+        % pass this new reference to eeglab's default rereferencing
+        % function. This is necessary, because PREP's performReference only
+        % outputs an EEG structure where all channels are interpolated.
+        [EEG, com] = pop_reref( EEG, 'RobustRef','keepref','on',...
+            'exclude', cfg.data_chans(end)+1:EEG.nbchan-1);
+    else
+        % normal reference
+        [EEG, com] = pop_reref( EEG, cfg.preproc_reference, ...
+            'keepref','on', ...
+            'exclude', cfg.data_chans(end)+1:EEG.nbchan);
+    end
     EEG = eegh(com, EEG);
 else
     disp('No rereferencing after import.')
