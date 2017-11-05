@@ -77,7 +77,10 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     EEG = pop_editset(EEG,'setname',[CFG.subject_name '_ICArejected.set']);
     EEG = pop_saveset( EEG, [CFG.subject_name '_ICArej.set'] , CFG.dir_eeg);
-
+    
+    %add info to table
+    EP.S.has_ICAclean(who_idx) = 1;
+    writetable(EP.S, EP.st_file)
 end
 
 fprintf('Done.\n')   
