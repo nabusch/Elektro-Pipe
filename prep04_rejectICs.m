@@ -79,8 +79,11 @@ for isub = 1:length(who_idx)
     EEG = pop_saveset( EEG, [CFG.subject_name '_ICArej.set'] , CFG.dir_eeg);
     
     %add info to table
-    EP.S.has_ICAclean(who_idx) = 1;
-    writetable(EP.S, EP.st_file)
+    EP.S.has_ICAclean(who_idx(isub)) = 1;
+    writetable(EP.S, EP.st_file);
+    
+    %close all old windows
+    close all;
 end
 
 fprintf('Done.\n')   
