@@ -114,7 +114,7 @@ parfor isub = 1:length(who_idx)
     
     %copy weight & sphere to original data
     if CFG.do_ICA_hp_filter
-        nonhpEEG.icaweight = EEG.icaweight;
+        nonhpEEG.icaweights = EEG.icaweights;
         nonhpEEG.icasphere = EEG.icasphere;
         EEG = nonhpEEG;
     end
