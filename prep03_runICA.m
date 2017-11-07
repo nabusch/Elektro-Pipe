@@ -26,8 +26,6 @@ parfor isub = 1:length(who_idx)
     % Prepare data.
     % --------------------------------------------------------------
     
-
-    
     % Write a status message to the command line.
     fprintf('\nNow processing subject %s, (number %d of %d).\n\n', ...
         CFG.subject_name, isub, length(who_idx));
@@ -40,6 +38,31 @@ parfor isub = 1:length(who_idx)
     if ~isa(EEG.data,'double')
         fprintf('\nFound single precision data. Will convert to double precision for ICA...\n');
         EEG.data = double(EEG.data);
+    end
+
+    % If wanted, use extra high-pass filter to enhance ICA results
+    % see, e.g., here: https://sccn.ucsd.edu/wiki/Makoto%27s_preprocessing_pipeline#High-pass_filter_the_data_at_1-Hz_.28for_ICA.2C_ASR.2C_and_CleanLine.29.2803.2F29.2F2017_updated.29
+    if CFG.do_ICA_hp_filter
+        % make a backup of the original data. We'll only save the ICA
+        % weights produced with the hp-filtered data.
+        nonhpEEG = EEG;
+        switch(CFG.hp_ICA_filter_type)
+            
+            case('butterworth') % This is a function of the separate ERPlab toolbox.
+                [EEG, com] = pop_ERPLAB_butter1(...
+                    EEG, CFG.hp_ICA_filter_limit, 0, 5); % requires ERPLAB plugin
+                EEG = eegh(com, EEG);
+                
+            case('kaiser')
+                m = pop_firwsord('kaiser', EEG.srate,...
+                    CFG.hp_ICA_filter_tbandwidth, CFG.hp_ICA_filter_pbripple);
+                beta = pop_kaiserbeta(CFG.hp_ICA_filter_pbripple);
+                
+                [EEG, com] = pop_firws(EEG, 'fcutoff', CFG.hp_ICA_filter_limit, ...
+                    'ftype', 'highpass', 'wtype', 'kaiser', ...
+                    'warg', beta, 'forder', m);
+                EEG = eegh(com, EEG);
+        end
     end
     
     % -------------------------------------------------------------- 
@@ -87,6 +110,13 @@ parfor isub = 1:length(who_idx)
         [EEG, com] = pop_runica(EEG, 'icatype', CFG.ica_type, ...
             'extended', CFG.ica_extended, ...
             'chanind', CFG.ica_chans);
+    end
+    
+    %copy weight & sphere to original data
+    if CFG.do_ICA_hp_filter
+        nonhpEEG.icaweight = EEG.icaweight;
+        nonhpEEG.icasphere = EEG.icasphere;
+        EEG = nonhpEEG;
     end
     
     EEG = eegh(com, EEG);

@@ -196,6 +196,18 @@ CFG.ica_ncomps = numel(CFG.data_chans)-3; % if ica_ncomps==0, determine data ran
 % data (EEGLAB default). Otherwise, use a fixed number of components. Note: subject-specific
 % settings will override this parameter.
 
+% Do you want to do an extra run of high-pass filtering before ICA (i.e., after segmentation)?
+% Note that this is not recommended, unless trials are really long
+% The data as filtered below are only used to compute the ICA. The
+% activation is then reprojected to the original data filtered as indicated
+% above in the section 'filters'
+CFG.do_ICA_hp_filter = 1;
+CFG.hp_ICA_filter_type = 'kaiser'; % or 'butterworth' - not recommended
+CFG.hp_ICA_filter_limit = 1.5; 
+CFG.hp_ICA_filter_tbandwidth = 0.2;
+CFG.hp_ICA_filter_pbripple = 0.01;
+
+
 %% Parameters for SASICA.
 CFG.sasica_heogchan = num2str(CFG.data_chans+1);
 CFG.sasica_veogchan = num2str(CFG.data_chans+2);
