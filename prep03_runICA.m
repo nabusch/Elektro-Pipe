@@ -18,7 +18,8 @@ for isub=1:length(who_idx)
     eval(evalstring);
 end
     
-parfor isub = 1:length(who_idx)
+%par
+for isub = 1:length(who_idx)
     
     EEG = [];
     CFG = ALLCFG{isub};
@@ -116,6 +117,9 @@ parfor isub = 1:length(who_idx)
     if CFG.do_ICA_hp_filter
         nonhpEEG.icaweights = EEG.icaweights;
         nonhpEEG.icasphere = EEG.icasphere;
+        nonhpEEG.icawinv = EEG.icawinv;
+        nonhpEEG.icachansind = EEG.icachansind;
+        nonhpEEG.icaact = EEG.icaact;
         EEG = nonhpEEG;
     end
     
