@@ -32,6 +32,7 @@ function [h, c] = func_plot_tf(TF,varargin)
 %       'conds' : cell. indeces of levels for each dimension. defaults to
 %                 average of all dimensions. e.g., for a Design with 3
 %                 factors this would be {dim1,dim2,dim3}
+% 'powfieldname': String. Name of the data field. Default is 'pow'.
 %
 % Wanja Moessing (moessing@wwu.de) Dec, 2016
 
@@ -41,7 +42,7 @@ p.FunctionName = 'funct_plot_tf';
 p.addRequired('TF',@isstruct);
 p.addOptional('conds','all',@(x) iscell(x) && isnumeric([x{:}]));
 p.addOptional('subjs','all',@(x) all(mod(x,1)==0));
-p.addOptional('chans',1:size(TF(1).pow,3),@(x) length(unique(x))==length(x));
+p.addOptional('chans', NaN, @(x) isnumeric(x));
 p.addOptional('scale','minmax',@(x) (isnumeric(x) && length(x)==2) || any(strcmp(x,{'absmax','minmax'})));
 p.addOptional('smoothness',48,@isnumeric);
 p.addOptional('title','off',@isstr);
@@ -50,6 +51,7 @@ p.addOptional('ylab','off',@isstr);
 p.addOptional('tlim','minmax',@(x) isnumeric(x) && length(x)==2);
 p.addOptional('freqs','minmax',@(x) isnumeric(x) && length(x)==2);
 p.addOptional('unit','',@isstr);
+p.addOptional('powfieldname','pow',@isstr);
 parse(p,TF,varargin{:})
 
 %% Transform input
@@ -64,6 +66,12 @@ ylab        = p.Results.ylab;
 tlim        = p.Results.tlim;
 freq        = p.Results.freqs;
 unit        = p.Results.unit;
+pfname      = p.Results.powfieldname;
+
+% no varargin for chans?
+if isnan(chans)
+    chans = 1:size(TF(1).(pfname),3);
+end
 
 %how many dimensions does the current TF have?
 dims   = ndims(TF);
@@ -97,14 +105,14 @@ end
 
 % define over which subjects to average
 if strcmp(subjs,'all')
-    nsubs = size(TF.pow);
+    nsubs = size(TF.(pfname));
     subjs = 1:nsubs(end);
 end
 
 %% extract data
 x = TF.times;
 y = TF.freqs;
-z(:,:,:,:) = TF.pow(:,:,chans,subjs);
+z(:,:,:,:) = TF.(pfname)(:,:,chans,subjs);
 
 %% make z 2-dimensional (i.e., average power over channels and/or subjects)
 z = mean(mean(z,4),3);
@@ -112,7 +120,7 @@ if all(all(isnan(z)))
     error('Power data are NaN. One reason could be that your condition does not have any trials.');
 end
 %% create contour figure
-[~, h] = contourf(x, y, z, smoothness, 'linestyle', 'none');
+[~, h] = contourf(squeeze(x), squeeze(y), z, smoothness, 'linestyle', 'none');
 
 %% adjust scales
 %z/power
