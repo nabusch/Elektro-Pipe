@@ -111,7 +111,7 @@ end
 
 %% extract data
 x = TF.times;
-y = TF.freqs;
+y = squeeze(TF.freqs);
 z(:,:,:,:) = TF.(pfname)(:,:,chans,subjs);
 
 %% make z 2-dimensional (i.e., average power over channels and/or subjects)
@@ -120,8 +120,12 @@ if all(all(isnan(z)))
     error('Power data are NaN. One reason could be that your condition does not have any trials.');
 end
 %% create contour figure
-[~, h] = contourf(squeeze(x), squeeze(y), z, smoothness, 'linestyle', 'none');
-
+[~, h] = contourf(squeeze(x), y, z, smoothness, 'linestyle', 'none');
+%test if logscale is used and adjust if necessary
+if all(round(y,10) == round(logspace(log10(y(1)), log10(y(end)), length(y)), 10))
+    set(gca,'yscale','log','ytick', y, 'yticklabel', round(y,1),...
+        'FontSize',6);
+end
 %% adjust scales
 %z/power
 if strcmp(scale,'minmax')
