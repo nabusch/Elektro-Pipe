@@ -250,19 +250,19 @@ for idesign = 1:length(EP.design_idx)
                     end
                 end
                 
-                % you can manipulate the following lines of code to extract
-                % Info about the trial circumstances. This might be useful
-                % for analyzing behavior*eeg.
-                k = 0;
-                Info = struct;
-                for i = trialidx
-                    k = k + 1;
-                    Info(k).validity = unique([EEG.epoch(i).eventvalidity{:}]);
-                    Info(k).BehavTrial = unique([EEG.epoch(i).eventtrialnumber{:}]);
-                    Info(k).RespDiff = unique([EEG.epoch(i).eventRespDiff{:}]);
-                    Info(k).Session = unique([EEG.epoch(i).eventSession{:}]);
-                end
-                TF(idx{:}).Info{isub} = Info;
+%                 % you can manipulate the following lines of code to extract
+%                 % Info about the trial circumstances. This might be useful
+%                 % for analyzing behavior*eeg.
+%                 k = 0;
+%                 Info = struct;
+%                 for i = trialidx
+%                     k = k + 1;
+%                     Info(k).validity = unique([EEG.epoch(i).eventvalidity{:}]);
+%                     Info(k).BehavTrial = unique([EEG.epoch(i).eventtrialnumber{:}]);
+%                     Info(k).RespDiff = unique([EEG.epoch(i).eventRespDiff{:}]);
+%                     Info(k).Session = unique([EEG.epoch(i).eventSession{:}]);
+%                 end
+%                 TF(idx{:}).Info{isub} = Info;
             end
         end
         fprintf('\n')
