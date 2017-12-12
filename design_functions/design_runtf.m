@@ -4,7 +4,11 @@ function [TF] = design_runtf(EP)
 % Compute a time frequency analysis for all conditions specified in EP.
 % The function computes for every design a struct "TF".
 % This struct has dimensions:
-% levelsFactor1 x levelsFactor2 x ... x levelsFactorN.
+% levelsFactor1+1 x levelsFactor2+1 x ... x levelsFactorN+1.
+% '+1' refers to the average of each factor. So in a 2x2 design, you'll get
+% a 3x3 struct where TF(1, 3) is power for level 1 of factor 1 regardless
+% of the levels of factor 2.
+%
 % Consequently, each field contains a struct for each subject analyzed in a
 % certain design. This struct contains the following fields:
 %
@@ -19,10 +23,16 @@ function [TF] = design_runtf(EP)
 %  TF(lvlF1,...,lvlFn).old_srate; TF(lvlF1,...,lvlFn).new_srate;
 %  TF(lvlF1,...,lvlFn).chanlocs; TF(lvlF1,...,lvlFn).condition
 %
-% So, results will be averaged across trials, we do not save single trials.
+% So, by default, results will be averaged across trials, we do not save single trials.
+% You can change this behavior by EP.singletrialTF to true.
 %
-% This function uses the parallel computing toolbox, using as many cores as
-% are physically present on your computer.
+% The low-level timefreq function uses all cores available on a computer.
+% So having many cores makes this function *much* faster. Keep in mind,
+% that this needs a lot of RAM.
+%
+% In case Matlab just randomly disappears without error message: This could
+% be related to GPU-drivers. You can thus try to avoid this by running
+% Matlab without java/gui.
 %
 % Input:
 % struct 'EP', as outlined in design_master. Uses the following fields:
@@ -41,6 +51,8 @@ function [TF] = design_runtf(EP)
 %                converted to single.
 % EP.who: Optional. can define which subjects to use. Default is all subjects.
 % EP.design_idx: which designs specified in get_design. Default is all designs.
+% EP.singletrialTF: Store single-trial data per subject (in addition to
+%                   normal data)? default is false.
 %
 % Output:
 % Always the TF-struct of the last Design. So if your get_design has 3
@@ -51,6 +63,7 @@ function [TF] = design_runtf(EP)
 % Written by Niko Busch (niko.busch@wwu.de)
 % and adjusted for parallel computing and use in Elektro-Pipe by
 % Wanja Moessing (moessing@wwu.de). University of Muenster - Dec 6, 2016
+% WM: remove parfor and include single-trial output. Dec 2017 
 
 %% Starting Info
 fprintf(['\n-----------------------------------------\n',...
@@ -78,6 +91,12 @@ if ~EP.keepdouble && EP.verbose
 elseif EP.keepdouble && EP.verbose
     disp('design_runtf: Keeping data in double precision. Are you sure that''s necessary?');
 end
+
+%% store single-trial data?
+if ~isfield(EP, 'singletrialTF') || isempty(EP.singletrialTF)
+    EP.singletrialTF = false;
+end
+
 %--------------------------------------------------------------
 % loop over designs
 %--------------------------------------------------------------
@@ -99,6 +118,7 @@ for idesign = 1:length(EP.design_idx)
     % creating a single file containing all data for each design.
     %--------------------------------------------------------------
     for isub = 1:length(subjects_idx)
+        clear C;
         fprintf(['\n-----------------------------------------\n',...
             'design_runtf: Now processing subject %i of %i in Design %i of %i\n',...
             '-----------------------------------------\n'],...
@@ -137,20 +157,6 @@ for idesign = 1:length(EP.design_idx)
         nchans = length(CFG.tf_chans);
         nconds = length(DINFO.design_matrix);
         
-        %--------------------------------------------------------------
-        % start parallel pool for parfor loop
-        %--------------------------------------------------------------
-        try
-            p  = gcp('nocreate');
-            if isempty(p)
-                parpool('local');
-            end
-        catch ME
-            fprintf(2,['Starting a parallel-pool failed. This could be due',...
-                'to an old version of Matlab.\nThe error message was:\n']);
-            rethrow(ME);
-        end
-        
         %-----------------------------------------------------------------
         % CFG.tf_verbose should be preferred over EP.verbose.
         % In case no CFG.tf_verbose is set, set it automatically.
@@ -169,14 +175,13 @@ for idesign = 1:length(EP.design_idx)
         end
         
         %-----------------------------------------------------------
-        % Run TF analysis once across all trials.
-        % This runs for multiple channels in parallel
+        % Run TF analysis once across all trials per channel.
         %-----------------------------------------------------------
         if EP.verbose
             disp('design_runtf: computing tf...');
         end
-        parfor ichan = 1:nchans
-            %for ichan =1:nchans
+        for ichan = 1:nchans
+            fprintf('design_runtf: Computing channel %i/%i\n', ichan, nchans);
             if strcmp(CFG.tf_verbose,'on')
                 fprintf('\nComputing TF for channel %d ', ichan);
             end
@@ -193,58 +198,47 @@ for idesign = 1:length(EP.design_idx)
             % can immediately overwrite the tf variable lest it gets to
             % huge.
             %--------------------------------------------------------------
-            for icondition = 1:nconds
-                trialidx = condinfo(icondition).trials;
+            for icond = 1:nconds
+                trialidx = condinfo(icond).trials;
                 if isempty(trialidx)
                     warning('design_run_tf: no trials found for condition %i: ''%s''',...
-                        icondition,condition_names{icondition});
+                        icond,condition_names{icond});
                 end
+                
                 thistf   = tf(:,:,trialidx);
-                if ~EP.keepdouble
-                    C(ichan).TF(icondition).pow(:,:,ichan) = single(mean(abs(thistf).^2,3));
-                    C(ichan).TF(icondition).itc(:,:,ichan) = single(abs(mean(exp(angle(thistf) * sqrt(-1)),3)));
-                else
-                    C(ichan).TF(icondition).pow(:,:,ichan) = mean(abs(thistf).^2,3);
-                    C(ichan).TF(icondition).itc(:,:,ichan) = abs(mean(exp(angle(thistf) * sqrt(-1)),3));
-                end
-                C(ichan).TF(icondition).times          = tftimes;
-                C(ichan).TF(icondition).freqs          = tffreqs;
-                C(ichan).TF(icondition).cycles         = CFG.tf_cycles;
-                C(ichan).TF(icondition).freqsol        = freqresol;
-                C(ichan).TF(icondition).timeresol      = timeresol;
-                C(ichan).TF(icondition).wavelet        = wavelet;
-                C(ichan).TF(icondition).old_srate      = EEG.srate;
-                C(ichan).TF(icondition).new_srate      = 1/mean(diff(tftimes));
-                C(ichan).TF(icondition).chanlocs       = EEG.chanlocs;
-                C(ichan).TF(icondition).condition      = condition_names{icondition};
-                C(ichan).TF(icondition).subject        = CFG.subject_name;
-            end
-        end
-        fprintf('\n')
-        
-        %--------------------------------------------------------------
-        % Restructure to the desired output format. This is necessary,
-        % because constructing the data in the desired output format during
-        % the parfor-loop violates parfor's assumptions.
-        %--------------------------------------------------------------
-        for ichan=1:length(C)
-            for icond = 1:nconds
+                
                 idx = condinfo(icond).level;
-                TF(idx{:}).pow(:,:,ichan,isub) = C(ichan).TF(icond).pow(:,:,ichan);
-                TF(idx{:}).itc(:,:,ichan,isub) = C(ichan).TF(icond).itc(:,:,ichan);
-                TF(idx{:}).times               = C(ichan).TF(icond).times;
-                TF(idx{:}).freqs               = C(ichan).TF(icond).freqs;
-                TF(idx{:}).cycles              = C(ichan).TF(icond).cycles;
-                TF(idx{:}).freqsol             = C(ichan).TF(icond).freqsol;
-                TF(idx{:}).timeresol           = C(ichan).TF(icond).timeresol;
-                TF(idx{:}).wavelet             = C(ichan).TF(icond).wavelet;
-                TF(idx{:}).old_srate           = C(ichan).TF(icond).old_srate;
-                TF(idx{:}).new_srate           = C(ichan).TF(icond).new_srate;
-                TF(idx{:}).chanlocs            = C(ichan).TF(icond).chanlocs;
-                TF(idx{:}).condition           = C(ichan).TF(icond).condition;
+                
+                if EP.singletrialTF
+                    if ~EP.keepdouble
+                        TF(idx{:}).single(isub).pow(:,:,:,ichan) = single(abs(thistf).^2);
+                        TF(idx{:}).single(isub).itc(:,:,:,ichan) = single(abs(exp(angle(thistf) * sqrt(-1))));
+                    else
+                        TF(idx{:}).single(isub).pow(:,:,:,ichan) = abs(thistf).^2;
+                        TF(idx{:}).single(isub).itc(:,:,:,ichan) = abs(exp(angle(thistf) * sqrt(-1)));
+                    end
+                end
+                if ~EP.keepdouble
+                    TF(idx{:}).pow(:,:,ichan,isub) = single(mean(abs(thistf).^2,3));
+                    TF(idx{:}).itc(:,:,ichan,isub) = single(abs(mean(exp(angle(thistf) * sqrt(-1)),3)));
+                else
+                    TF(idx{:}).pow(:,:,ichan,isub) = mean(abs(thistf).^2,3);
+                    TF(idx{:}).itc(:,:,ichan,isub) = abs(mean(exp(angle(thistf) * sqrt(-1)),3));
+                end
+                TF(idx{:}).times               = tftimes;
+                TF(idx{:}).freqs               = tffreqs;
+                TF(idx{:}).cycles              = CFG.tf_cycles;
+                TF(idx{:}).freqsol             = freqresol;
+                TF(idx{:}).timeresol           = timeresol;
+                TF(idx{:}).wavelet             = wavelet;
+                TF(idx{:}).old_srate           = EEG.srate;
+                TF(idx{:}).new_srate           = 1/mean(diff(tftimes));
+                TF(idx{:}).chanlocs            = EEG.chanlocs(CFG.tf_chans);
+                TF(idx{:}).condition           = condition_names{icond};
                 TF(idx{:}).DINFO               = DINFO;
                 TF(idx{:}).trials              = condinfo(icond).trials;
                 TF(idx{:}).factor_names        = DINFO.factor_names;
+                TF(idx{:}).subject{isub}       = CFG.subject_name;
                 % extract information on factor values so they are easily
                 % accessible in later stages.
                 for ifactor = 1:length(DINFO.factor_values)
@@ -255,7 +249,33 @@ for idesign = 1:length(EP.design_idx)
                             DINFO.factor_values{1,ifactor}{condinfo(icond).level{ifactor}};
                     end
                 end
+                
+                % you can manipulate the following lines of code to extract
+                % Info about the trial circumstances. This might be useful
+                % for analyzing behavior*eeg.
+                k = 0;
+                Info = struct;
+                for i = trialidx
+                    k = k + 1;
+                    Info(k).validity = unique([EEG.epoch(i).eventvalidity{:}]);
+                    Info(k).BehavTrial = unique([EEG.epoch(i).eventtrialnumber{:}]);
+                    Info(k).RespDiff = unique([EEG.epoch(i).eventRespDiff{:}]);
+                    Info(k).Session = unique([EEG.epoch(i).eventSession{:}]);
+                end
+                TF(idx{:}).Info{isub} = Info;
             end
+        end
+        fprintf('\n')
+        % in the single-trial case, we need to store temporary files to
+        % avoid filled-up RAM
+        if EP.singletrialTF
+            tmpFol = [EP.dir_out, filesep, DINFO.design_name, filesep,...
+                'singletrl_files'];
+            [~,~] = mkdir(tmpFol);
+            save([tmpFol, filesep, 'Subj_', num2str(isub), '_tmp.mat'], 'TF');
+            clear Info tf thistf EEG;
+            %delete single trial data but keep average.
+            TF = rmfield(TF, 'single');
         end
     end
     
@@ -269,8 +289,10 @@ for idesign = 1:length(EP.design_idx)
     end
     savefile = fullfile(savepath, [EP.project_name, '_D', num2str(DINFO.design_idx), '.mat']);
     save(savefile, 'TF');
+    
     if idesign ~= length(EP.design_idx) %don't clear if it's the last one.
         clear TF C tmp;
     end
 end
+
 end

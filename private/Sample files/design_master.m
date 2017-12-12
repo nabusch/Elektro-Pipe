@@ -1,6 +1,6 @@
 %% "Master file" that runs the grand average for all ERPs from all subjects.
-clear;
-eeglab;
+clear ALLCOM ALLEEG CURRENTSET CURRENTSTUDY EEG EP LASTCOM PLUGINLIST ans;
+eeglab('nogui');
 close all;
 
 addpath(genpath('~\Elektro-Pipe\'));
@@ -74,10 +74,11 @@ EP.verbose = 0;
 % run_tf for now).
 EP.keepdouble = 0;
 
-% run CUDA GPU enabled fft. great speedup for Time-Frequency Analysis.
-% NVidia CUDA GPU with up-to-date drivers necessary.
-% NOT YET IMPLEMENTED
-EP.CUDA = 0;
+% Store single trial files?
+% If true, this will create a subfolder in the output folder, containing
+% one file per subject with the single-trial data. Average data are
+% unaffected by this setting.
+EP.singletrialTF = 0;
 
 %% Run grandaverage for all designs and subejcts.
 % Required input:
