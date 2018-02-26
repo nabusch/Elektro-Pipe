@@ -23,8 +23,10 @@ function [TF] = design_runtf(EP)
 %  TF(lvlF1,...,lvlFn).old_srate; TF(lvlF1,...,lvlFn).new_srate;
 %  TF(lvlF1,...,lvlFn).chanlocs; TF(lvlF1,...,lvlFn).condition
 %
-% So, by default, results will be averaged across trials, we do not save single trials.
-% You can change this behavior by EP.singletrialTF to true.
+% By default, results will be averaged across trials, we do not save single trials.
+% You can change this behavior by EP.singletrialTF to true. This will still
+% produce the averaged data, but creates an additional subfolder with one
+% file per subject containing the single data and this subject's average.
 %
 % The low-level timefreq function uses all cores available on a computer.
 % So having many cores makes this function *much* faster. Keep in mind,
@@ -211,11 +213,11 @@ for idesign = 1:length(EP.design_idx)
                 
                 if EP.singletrialTF
                     if ~EP.keepdouble
-                        TF(idx{:}).single(isub).pow(:,:,:,ichan) = single(abs(thistf).^2);
-                        TF(idx{:}).single(isub).itc(:,:,:,ichan) = single(abs(exp(angle(thistf) * sqrt(-1))));
+                        TF(idx{:}).single.pow(:,:,:,ichan) = single(abs(thistf).^2);
+                        TF(idx{:}).single.itc(:,:,:,ichan) = single(abs(exp(angle(thistf) * sqrt(-1))));
                     else
-                        TF(idx{:}).single(isub).pow(:,:,:,ichan) = abs(thistf).^2;
-                        TF(idx{:}).single(isub).itc(:,:,:,ichan) = abs(exp(angle(thistf) * sqrt(-1)));
+                        TF(idx{:}).single.pow(:,:,:,ichan) = abs(thistf).^2;
+                        TF(idx{:}).single.itc(:,:,:,ichan) = abs(exp(angle(thistf) * sqrt(-1)));
                     end
                 end
                 if ~EP.keepdouble
@@ -272,7 +274,7 @@ for idesign = 1:length(EP.design_idx)
             tmpFol = [EP.dir_out, filesep, DINFO.design_name, filesep,...
                 'singletrl_files'];
             [~,~] = mkdir(tmpFol);
-            save([tmpFol, filesep, 'Subj_', num2str(isub), '_tmp.mat'], 'TF');
+            save([tmpFol, filesep, 'Subj_', num2str(isub), '_singletrial.mat'], 'TF');
             clear Info tf thistf EEG;
             %delete single trial data but keep average.
             TF = rmfield(TF, 'single');
