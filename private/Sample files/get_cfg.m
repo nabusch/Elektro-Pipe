@@ -224,12 +224,20 @@ CFG.hilb_quant_chans   = [1:64];
 CFG.hilb_quant_nbins   = 2;
 
 %% TF analysis
+% Note: In case you want to store the single trial data as well, you can specify a subset of time, frequency, and/or channels below
 CFG.tf_chans       = CFG.data_chans;
 CFG.tf_freqlimits  = [2 40];
 CFG.tf_nfreqs      = 20;
-% CFG.tf_freqsout    = linspace(CFG.tf_freqlimits(1), CFG.tf_freqlimits(2), CFG.tf_nfreqs);
+CFG.tf_freqsout    = CFG.tf_freqlimits; %use this to specify specific frequencies and overwrite the combination of nfreqs, scale and limits
 CFG.tf_cycles      = [1 6];
 CFG.tf_causal      = 'off';
 CFG.tf_freqscale   = 'log';
-CFG.tf_ntimesout    = 400;
+CFG.tf_ntimesout   = 400;
 CFG.tf_verbose     = 'off'; % if not specified: overwritten by EP.verbose
+
+%% TF single-trial analysis (leave empty if you do not want a subset of the specs above)
+CFG.single.tf_chans       = []; %cell with characters or vector with indeces
+CFG.single.tf_freqlimits  = []; %in Hz
+CFG.single.tf_timelimits  = []; %in seconds
+
+end

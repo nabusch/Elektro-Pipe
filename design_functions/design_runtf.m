@@ -96,9 +96,8 @@ end
 
 %% store single-trial data?
 if ~isfield(EP, 'singletrialTF') || isempty(EP.singletrialTF)
-    EP.singletrialTF = false;
+    EP.singletrialTF = false;    
 end
-
 %--------------------------------------------------------------
 % loop over designs
 %--------------------------------------------------------------
@@ -119,6 +118,8 @@ for idesign = 1:length(EP.design_idx)
     % per design). However, that's the only way to preserve some RAM while
     % creating a single file containing all data for each design.
     %--------------------------------------------------------------
+    % Estimate how long it will take
+	PerSubDuration = [];
     for isub = 1:length(subjects_idx)
         clear C;
         fprintf(['\n-----------------------------------------\n',...
@@ -126,7 +127,16 @@ for idesign = 1:length(EP.design_idx)
             '-----------------------------------------\n'],...
             isub,length(subjects_idx),idesign,length(EP.design_idx));
         
-        tic; %runtime will be stored in data
+		meanDur = mean(seconds(PerSubDuration));
+		eta = meanDur * (length(subjects_idx) - isub + 1)		;
+		fprintf(['\n-----------------------------------------\n',...
+			'Mean duration per subject is: %.0f minutes\n',...
+			'Estimated time of arrival (in the current design): %s (in %.0fh %.0fmin)',...
+			'\n-----------------------------------------\n'],...
+			round(minutes(meanDur)), datetime('now') + eta, floor(hours(eta)),...
+            mod(minutes(eta), 60))
+		
+        tic;
         
         %--------------------------------------------------------------
         % Load this subject's EEG data.
@@ -140,7 +150,7 @@ for idesign = 1:length(EP.design_idx)
         CFG = my_CFG; %this is necessary to make CFG 'unambiguous in this context'
         EEG = pop_loadset('filename', [CFG.subject_name EP.filename_in '.set'] , ...
             'filepath', CFG.dir_eeg);
-        
+
         %--------------------------------------------------------------
         % don't re-ference Eye-channels & *EOG to EEG-reference
         %--------------------------------------------------------------
@@ -182,6 +192,7 @@ for idesign = 1:length(EP.design_idx)
         if EP.verbose
             disp('design_runtf: computing tf...');
         end
+		
         for ichan = 1:nchans
             fprintf('design_runtf: Computing channel %i/%i\n', ichan, nchans);
             if strcmp(CFG.tf_verbose,'on')
@@ -211,13 +222,49 @@ for idesign = 1:length(EP.design_idx)
                 
                 idx = condinfo(icond).level;
                 
+                %----------------------------------------------------------
+                % Store single trial data
+                %----------------------------------------------------------
                 if EP.singletrialTF
-                    if ~EP.keepdouble
-                        TF(idx{:}).single.pow(:,:,:,ichan) = single(abs(thistf).^2);
-                        TF(idx{:}).single.itc(:,:,:,ichan) = single(abs(exp(angle(thistf) * sqrt(-1))));
+                    % If storing single trials: Which subset of data?
+                    if isfield(CFG.single,'tf_chans') && ~isempty(CFG.single.tf_chans)
+                        if iscell(CFG.single.tf_chans) %specified as name
+                            ch = ismember({EEG.chanlocs.labels}, CFG.single.tf_chans);
+                        elseif isnumeric(CFG.single.tf_chans)
+                            ch = zeros(1, nchans);
+                            ch(CFG.single.tf_chans) = 1;
+                        end
                     else
-                        TF(idx{:}).single.pow(:,:,:,ichan) = abs(thistf).^2;
-                        TF(idx{:}).single.itc(:,:,:,ichan) = abs(exp(angle(thistf) * sqrt(-1)));
+						ch = ones(1, nchans);
+                    end
+                    if isfield(CFG.single,'tf_freqlimits') && ~isempty(CFG.single.tf_freqlimits)
+                        hz = (tffreqs >= CFG.single.tf_freqlimits(1) &...
+                            tffreqs <= CFG.single.tf_freqlimits(end));
+                    else
+						hz = ones(1, length(tffreqs));
+                    end
+                    if isfield(CFG.single,'tf_timelimits') && ~isempty(CFG.single.tf_timelimits)
+                        t  = (tftimes >= CFG.single.tf_timelimits(1) &...
+                            tftimes <= CFG.single.tf_timelimits(end));
+                    else
+						t = ones(1, length(tftimes));
+                    end
+                    
+                    % extract data
+                    if ch(ichan)
+                        nth_chan = sum(ch(1:ichan));
+                        TF(idx{:}).single.chanlocs(nth_chan) = EEG.chanlocs(ichan);
+                        if ~EP.keepdouble
+                            TF(idx{:}).single.pow(:,:,:,nth_chan) = ...
+                                single(abs(thistf(hz, t, :)).^2);
+                            TF(idx{:}).single.itc(:,:,:,nth_chan) = ...
+                                single(abs(exp(angle(thistf(hz, t, :)) * sqrt(-1))));
+                        else
+                            TF(idx{:}).single.pow(:,:,:,nth_chan) = ...
+                                abs(thistf(hz, t, :)).^2;
+                            TF(idx{:}).single.itc(:,:,:,nth_chan) = ...
+                                abs(exp(angle(thistf(hz, t, :)) * sqrt(-1)));
+                        end
                     end
                 end
                 if ~EP.keepdouble
@@ -279,6 +326,8 @@ for idesign = 1:length(EP.design_idx)
             %delete single trial data but keep average.
             TF = rmfield(TF, 'single');
         end
+		%use this to give an indicator of how long it'll take...
+		PerSubDuration = [PerSubDuration, toc];
     end
     
     %--------------------------------------------------------------
