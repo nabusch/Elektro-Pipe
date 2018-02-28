@@ -321,8 +321,22 @@ for idesign = 1:length(EP.design_idx)
             tmpFol = [EP.dir_out, filesep, DINFO.design_name, filesep,...
                 'singletrl_files'];
             [~,~] = mkdir(tmpFol);
+            
+            % don't save average data of all subjects in each file
+            % Copying TF is quite stupid in terms of RAM management. Should
+            % find a more elegant solution for that in the future.
+            % It's really just a RAM concern, however, as it takes just
+            % <1s per Subject. (WM)
+            backTF = TF;
+            cells = fullfact(size(TF));
+            for icell = 1:length(cells)
+                C = cells(icell,:);
+                TF(C(1), C(2), C(3)).pow = squeeze(TF(C(1), C(2), C(3)).pow(:,:,:,isub));
+                TF(C(1), C(2), C(3)).itc = squeeze(TF(C(1), C(2), C(3)).itc(:,:,:,isub));
+            end
             save([tmpFol, filesep, 'Subj_', num2str(isub), '_singletrial.mat'], 'TF');
-            clear Info tf thistf EEG;
+            TF = backTF;
+            clear Info tf thistf EEG backTF;
             %delete single trial data but keep average.
             TF = rmfield(TF, 'single');
         end
