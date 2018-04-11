@@ -41,8 +41,8 @@ p = inputParser;
 p.FunctionName = 'funct_plot_tf';
 p.addRequired('TF',@isstruct);
 p.addOptional('conds','all',@(x) iscell(x) && isnumeric([x{:}]));
-p.addOptional('subjs','all',@(x) all(mod(x,1)==0));
-p.addOptional('chans', NaN, @(x) isnumeric(x));
+p.addOptional('subjs',':',@(x) all(mod(x,1)==0) || strcmp(x, ':'));
+p.addOptional('chans', ':', @(x) isnumeric(x) || strcmp(x, ':'));
 p.addOptional('scale','minmax',@(x) (isnumeric(x) && length(x)==2) || any(strcmp(x,{'absmax','minmax'})));
 p.addOptional('smoothness',48,@isnumeric);
 p.addOptional('title','off',@isstr);
@@ -103,19 +103,13 @@ elseif ~all(ismember(chans,1:length(TF.chanlocs)))
     error('couldn''t find the specified channels');
 end
 
-% define over which subjects to average
-if strcmp(subjs,'all')
-    nsubs = size(TF.(pfname));
-    subjs = 1:nsubs(end);
-end
-
 %% extract data
 x = TF.times;
 y = squeeze(TF.freqs);
-z(:,:,:,:) = TF.(pfname)(:,:,chans,subjs);
+z = TF.(pfname)(:,:,chans,subjs);
 
 %% make z 2-dimensional (i.e., average power over channels and/or subjects)
-z = mean(mean(z,4),3);
+z = mean(mean(z, 4), 3);
 if all(all(isnan(z)))
     error('Power data are NaN. One reason could be that your condition does not have any trials.');
 end

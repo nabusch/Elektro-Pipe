@@ -237,6 +237,7 @@ for idesign = 1:length(EP.design_idx)
                     else
 						ch = ones(1, nchans);
                     end
+                    
                     if isfield(CFG.single,'tf_freqlimits') && ~isempty(CFG.single.tf_freqlimits)
                         hz = (tffreqs >= CFG.single.tf_freqlimits(1) &...
                             tffreqs <= CFG.single.tf_freqlimits(end));
@@ -249,6 +250,11 @@ for idesign = 1:length(EP.design_idx)
                     else
 						t = ones(1, length(tftimes));
                     end
+                    
+                    % store information
+                    TF(idx{:}).single.chanlocs = EEG.chanlocs(ch);
+                    TF(idx{:}).single.times    = tftimes(t);
+                    TF(idx{:}).single.freqs    = tffreqs(hz);
                     
                     % extract data
                     if ch(ichan)
