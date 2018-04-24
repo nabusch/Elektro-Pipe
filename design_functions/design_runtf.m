@@ -252,7 +252,7 @@ for idesign = 1:length(EP.design_idx)
                     end
                     
                     % store information
-                    TF(idx{:}).single.chanlocs = EEG.chanlocs(ch);
+                    TF(idx{:}).single.chanlocs = EEG.chanlocs(find(ch));
                     TF(idx{:}).single.times    = tftimes(t);
                     TF(idx{:}).single.freqs    = tffreqs(hz);
                     
