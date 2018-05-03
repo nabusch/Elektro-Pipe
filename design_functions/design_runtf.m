@@ -242,13 +242,13 @@ for idesign = 1:length(EP.design_idx)
                         hz = (tffreqs >= CFG.single.tf_freqlimits(1) &...
                             tffreqs <= CFG.single.tf_freqlimits(end));
                     else
-						hz = ones(1, length(tffreqs));
+						hz = true(1, length(tffreqs));
                     end
                     if isfield(CFG.single,'tf_timelimits') && ~isempty(CFG.single.tf_timelimits)
                         t  = (tftimes >= CFG.single.tf_timelimits(1) &...
                             tftimes <= CFG.single.tf_timelimits(end));
                     else
-						t = ones(1, length(tftimes));
+						t = true(1, length(tftimes));
                     end
                     
                     % store information
