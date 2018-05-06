@@ -255,6 +255,7 @@ for idesign = 1:length(EP.design_idx)
                     TF(idx{:}).single.chanlocs = EEG.chanlocs(find(ch));
                     TF(idx{:}).single.times    = tftimes(t);
                     TF(idx{:}).single.freqs    = tffreqs(hz);
+                    TF(idx{:}).single.subject  = CFG.subject_name;
                     
                     % extract data
                     if ch(ichan)
@@ -305,19 +306,19 @@ for idesign = 1:length(EP.design_idx)
                     end
                 end
                 
-%                 % you can manipulate the following lines of code to extract
-%                 % Info about the trial circumstances. This might be useful
-%                 % for analyzing behavior*eeg.
-%                 k = 0;
-%                 Info = struct;
-%                 for i = trialidx
-%                     k = k + 1;
-%                     Info(k).validity = unique([EEG.epoch(i).eventvalidity{:}]);
-%                     Info(k).BehavTrial = unique([EEG.epoch(i).eventtrialnumber{:}]);
-%                     Info(k).RespDiff = unique([EEG.epoch(i).eventRespDiff{:}]);
-%                     Info(k).Session = unique([EEG.epoch(i).eventSession{:}]);
-%                 end
-%                 TF(idx{:}).Info{isub} = Info;
+                % you can manipulate the following lines of code to extract
+                % Info about the trial circumstances. This might be useful
+                % for analyzing behavior*eeg.
+                k = 0;
+                Info = struct;
+                for i = trialidx
+                    k = k + 1;
+                    Info(k).validity = unique([EEG.epoch(i).eventvalidity{:}]);
+                    Info(k).BehavTrial = unique([EEG.epoch(i).eventtrialnumber{:}]);
+                    Info(k).RespDiff = unique([EEG.epoch(i).eventRespDiff{:}]);
+                    Info(k).Session = unique([EEG.epoch(i).eventSession{:}]);
+                end
+                TF(idx{:}).Info{isub} = Info;
             end
         end
         fprintf('\n')
@@ -341,6 +342,9 @@ for idesign = 1:length(EP.design_idx)
                 TF(C(1), C(2), C(3)).itc = squeeze(TF(C(1), C(2), C(3)).itc(:,:,:,isub));
             end
             save([tmpFol, filesep, 'Subj_', num2str(isub), '_singletrial.mat'], 'TF');
+            system(['echo "Elektro-Pipe: finished tf-decomposition of subject ',...
+                num2str(isub), '/',num2str(length(subjects_idx)),...
+                '" | mail -s "Elektropipe notification" moessing@wwu.de']);
             TF = backTF;
             clear Info tf thistf EEG backTF;
             %delete single trial data but keep average.
@@ -360,7 +364,6 @@ for idesign = 1:length(EP.design_idx)
     end
     savefile = fullfile(savepath, [EP.project_name, '_D', num2str(DINFO.design_idx), '.mat']);
     save(savefile, 'TF');
-    
     if idesign ~= length(EP.design_idx) %don't clear if it's the last one.
         clear TF C tmp;
     end
