@@ -185,12 +185,16 @@ end
 % --------------------------------------------------------------
 % Epoch the data.
 % --------------------------------------------------------------
+if cfg.keep_continuous
+    CONTEEG = EEG;
+end
 
 % Optional: remove all events except the target events from the EEG
 % structure.
 %[EEG] = pop_selectevent( EEG, 'type', [cfg.trig_target,cfg.trig_omit] , ...
 %    'deleteevents','on','deleteepochs','on','invertepochs','off');
-[EEG, ~, com] = pop_epoch( EEG, strread(num2str(cfg.trig_target),'%s')', [cfg.epoch_tmin cfg.epoch_tmax], ...
+[EEG, ~, com] = pop_epoch( EEG, strread(num2str(cfg.trig_target),'%s')',...
+    [cfg.epoch_tmin cfg.epoch_tmax], ...
     'newname', 'BDF file epochs', 'epochinfo', 'yes');
 EEG = eegh(com, EEG);
 
@@ -236,6 +240,72 @@ if ~isempty(cfg.trig_omit) || ~isempty(cfg.trig_omit_inv)
                     end
             end
         end
+    end
+    
+    % in case we're using the unfold-pipe, deleting epochs is useless. But
+    % we want to keep the latencies of those trials, to later interpolate
+    % the respective time-windows.
+    if cfg.keep_continuous
+        ipoch = 0;
+        for irej = find(rejidx)
+            [foundlow, foundhigh] = deal(false);
+            ipoch = ipoch + 1;
+            % find the urevent index of the target trigger
+            tmpidx = find([EEG.epoch(irej).eventtype{:}] == cfg.trig_target);
+            urindx = EEG.epoch(irej).eventurevent{tmpidx};
+            % sanity check
+            assert(EEG.urevent(urindx).type == cfg.trig_target,...
+                ['Urevent and found event do not match. This is a ',...
+                'serious error and could have various reasons. ',...
+                'You should check this!']);
+            % get the preceding and the following trial interrupting
+            % triggers in the urevent structure
+            k = 0;
+            while ~(foundlow && foundhigh)
+                k = k + 1;
+                mindx = urindx - k;
+                maxdx = urindx + k;
+                if mindx <= 0 && ~foundlow
+                    msg = sprintf(['Trial %i does not seem to be ',...
+                        'preceded by a cfg.trig_trial_onset. Assuming ',...
+                        'that it''s the first trial in the data track'],...
+                        irej);
+                    warning(msg);
+                    foundlow = true;
+                    minurindx(ipoch) = 1;
+                elseif ~foundlow
+                    if EEG.urevent(mindx).type == cfg.trig_trial_onset
+                        foundlow = true;
+                        minurindx(ipoch) = mindx;
+                    end
+                end
+                if maxdx >= length(EEG.urevent) && ~foundhigh
+                    msg = sprintf(['Trial %i does not seem to be ',...
+                        'followed by a cfg.trig_trial_onset. Assuming ',...
+                        'that it''s the last trial in the data track'],...
+                        irej);
+                    warning(msg);
+                    foundhigh = true;
+                    maxurindx(ipoch) = length(EEG.urevent);
+                elseif ~foundhigh
+                    if EEG.urevent(maxdx).type == cfg.trig_trial_onset
+                        foundhigh = true;
+                        maxurindx(ipoch) = maxdx;
+                    end
+                end
+            end
+        end
+        % get the latency information for later interpolation in unfold
+        rejtrls = find(rejidx);
+        for irej = 1:length(minurindx)
+            EEG.uf_rej_latencies(irej, 1) = ...
+                EEG.urevent(minurindx(irej)).latency;
+            EEG.uf_rej_latencies(irej, 2) = ...
+                EEG.urevent(maxurindx(irej)).latency;
+            EEG.uf_rej_latencies(irej, 3) = rejtrls(irej);
+            EEG.uf_rej_latencies(irej, 4) = 0;
+        end
+        CONTEEG.uf_rej_latencies = EEG.uf_rej_latencies;
     end
     EEG = pop_rejepoch(EEG, rejidx, 0);
     EEG = eegh(com, EEG);
@@ -295,6 +365,75 @@ if ~isempty(cfg.checklatency)
     fclose(fid);
     set(0,'DefaultFigureVisible','on');
     
+    % in case we're using the unfold-pipe, deleting epochs is useless. But
+    % we want to keep the latencies of those trials, to later interpolate
+    % the respective time-windows.
+    if cfg.keep_continuous && ~isempty(badtrls)
+        ipoch = 0;
+        for irej = badtrls
+            [foundlow, foundhigh] = deal(false);
+            ipoch = ipoch + 1;
+            % find the urevent index of the target trigger
+            tmpidx = find([EEG.epoch(irej).eventtype{:}] == cfg.trig_target);
+            urindx = EEG.epoch(irej).eventurevent{tmpidx};
+            % sanity check
+            assert(EEG.urevent(urindx).type == cfg.trig_target,...
+                ['Urevent and found event do not match. This is a ',...
+                'serious error and could have various reasons. ',...
+                'You should check this!']);
+            % get the preceding and the following trial interrupting
+            % triggers in the urevent structure
+            k = 0;
+            while ~(foundlow && foundhigh)
+                k = k + 1;
+                mindx = urindx - k;
+                maxdx = urindx + k;
+                if mindx <= 0 && ~foundlow
+                    msg = sprintf(['Trial %i does not seem to be ',...
+                        'preceded by a cfg.trig_trial_onset. Assuming ',...
+                        'that it''s the first trial in the data track'],...
+                        irej);
+                    warning(msg);
+                    foundlow = true;
+                    minurindx(ipoch) = 1;
+                elseif ~foundlow
+                    if EEG.urevent(mindx).type == cfg.trig_trial_onset
+                        foundlow = true;
+                        minurindx(ipoch) = mindx;
+                    end
+                end
+                if maxdx >= length(EEG.urevent) && ~foundhigh
+                    msg = sprintf(['Trial %i does not seem to be ',...
+                        'followed by a cfg.trig_trial_onset. Assuming ',...
+                        'that it''s the last trial in the data track'],...
+                        irej);
+                    warning(msg);
+                    foundhigh = true;
+                    maxurindx(ipoch) = length(EEG.urevent);
+                elseif ~foundhigh
+                    if EEG.urevent(maxdx).type == cfg.trig_trial_onset
+                        foundhigh = true;
+                        maxurindx(ipoch) = maxdx;
+                    end
+                end
+            end
+        end
+        % get the latency information for later interpolation in unfold
+        if isfield(EEG, 'uf_rej_latencies')
+            startidx = size(EEG.uf_rej_latencies,1);
+        else
+            startidx = 0;
+        end
+        for irej = 1:length(minurindx)
+            EEG.uf_rej_latencies(startidx + irej, 1) = ...
+                EEG.urevent(minurindx(irej)).latency;
+            EEG.uf_rej_latencies(startidx + irej, 2) = ...
+                EEG.urevent(maxurindx(irej)).latency;
+            EEG.uf_rej_latencies(startidx + irej, 3) = badtrls(irej);
+            EEG.uf_rej_latencies(startidx + irej, 4) = 1;
+        end
+        CONTEEG.uf_rej_latencies = EEG.uf_rej_latencies;
+    end
 end
 
 
@@ -302,24 +441,67 @@ end
 % Remove 50Hz line noise using Tim Mullen's cleanline.
 % --------------------------------------------------------------
 if cfg.do_cleanline
-    % FFT before cleanline
-    [amps,  EEG.cleanline.freqs] = my_fft(EEG.data, 2, EEG.srate, EEG.pnts);
-    EEG.cleanline.pow = mean(amps.^2, 3);
+    if ~cfg.keep_continuous
+        % FFT before cleanline
+        [amps,  EEG.cleanline.freqs] = my_fft(EEG.data, 2, EEG.srate, EEG.pnts);
+        EEG.cleanline.pow = mean(amps.^2, 3);
+        
+        winlength = EEG.pnts / EEG.srate;
+        [EEG, com] = pop_cleanline(EEG, ...
+            'bandwidth', 2, 'chanlist', 1:EEG.nbchan, ...
+            'computepower', 0, 'linefreqs', [50 100], ...
+            'normSpectrum', 0, 'p', 0.01, ...
+            'pad',2, 'plotfigures', 0, ...
+            'scanforlines', 1, 'sigtype', 'Channels', ...
+            'tau', 100, 'verb', 1, ...
+            'winsize', winlength, 'winstep',winlength);
+        EEG = eegh(com, EEG);
+        
+        % FFT after cleanline
+        [ampsc, EEG.cleanline.freqsc] = my_fft(EEG.data, 2, EEG.srate, EEG.pnts);
+        EEG.cleanline.powc = mean(ampsc.^2, 3);
+    else
+        % FFT before cleanline
+        [amps,  CONTEEG.cleanline.freqs] = my_fft(CONTEEG.data, 2, CONTEEG.srate, CONTEEG.pnts);
+        CONTEEG.cleanline.pow = mean(amps.^2, 3);
+        
+        %find winlength that takes into account all data points and is
+        %between 3 and 4 seconds (cleanline recommendation). If that's not
+        %possible, increase the range stepwise.
+        K = 1:ceil(CONTEEG.pnts / 2);
+        D = K(rem(CONTEEG.pnts, K) == 0);
+        W = [];
+        startrng = [3000, 4000];
+        step = 10;
+        i = 0;
+        while ~any(W)
+            i = i + 1;
+            W = isInRange(CONTEEG.pnts./D, startrng(1) - step * i,...
+                startrng(2) + step * i);
+        end
+        
+        %it's possible that we catch multiple possible values. In that case
+        %simply use the first.
+        W = find(W, 1);
+        winlength = CONTEEG.pnts / D(W);
+
+        [CONTEEG, com] = pop_cleanline(CONTEEG, ...
+            'bandwidth', 2, 'chanlist', 1:CONTEEG.nbchan, ...
+            'computepower', 0, 'linefreqs', [50 100], ...
+            'normSpectrum', 0, 'p', 0.01, ...
+            'pad',2, 'plotfigures', 0, ...
+            'scanforlines', 1, 'sigtype', 'Channels', ...
+            'tau', 100, 'verb', 1, ...
+            'SlidingWinLength', winlength, 'winstep', 4);
+        CONTEEG = eegh(com, CONTEEG);
+        
+        % FFT after cleanline
+        [ampsc, CONTEEG.cleanline.freqsc] = my_fft(CONTEEG.data, 2, CONTEEG.srate, CONTEEG.pnts);
+        CONTEEG.cleanline.powc = mean(ampsc.^2, 3);
+    end
     
-    winlength = EEG.pnts / EEG.srate;
-    [EEG, com] = pop_cleanline(EEG, ...
-        'bandwidth', 2, 'chanlist', 1:EEG.nbchan, ...
-        'computepower', 0, 'linefreqs', [50 100], ...
-        'normSpectrum', 0, 'p', 0.01, ...
-        'pad',2, 'plotfigures', 0, ...
-        'scanforlines', 1, 'sigtype', 'Channels', ...
-        'tau', 100, 'verb', 1, ...
-        'winsize', winlength, 'winstep',winlength);
-    EEG = eegh(com, EEG);
     
-    % FFT after cleanline
-    [ampsc, EEG.cleanline.freqsc] = my_fft(EEG.data, 2, EEG.srate, EEG.pnts);
-    EEG.cleanline.powc = mean(ampsc.^2, 3);
+    
     
     % Create figure in background
     cleanline_qualityplot(EEG);
