@@ -47,6 +47,7 @@ CFG.trial_omit  = [];
 %remove epochs, that contain the target-trigger but not all of the triggers
 %specified here. Currently this can result in problems with the
 %coregistration of behavioral data.
+cfg.trig_omit_inv_mode = 'AND'; % 'AND' or 'OR'. Should trials that do not include all of these triggers (AND) or trials that do not include any of these triggers be removed?
 CFG.trig_omit_inv = [] ;
 
 % Optional: If you are using the file-io in WM-utilities, you might want to
