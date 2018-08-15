@@ -33,6 +33,9 @@ function [h, c] = func_plot_tf(TF,varargin)
 %                 average of all dimensions. e.g., for a Design with 3
 %                 factors this would be {dim1,dim2,dim3}
 % 'powfieldname': String. Name of the data field. Default is 'pow'.
+%    'aggregate': How to aggregate indicated data? default is @mean.
+%                 Can be anything that acts like mean
+%                 (@max,@min,@median,...)
 %
 % Wanja Moessing (moessing@wwu.de) Dec, 2016
 
@@ -52,6 +55,7 @@ p.addOptional('tlim','minmax',@(x) isnumeric(x) && length(x)==2);
 p.addOptional('freqs','minmax',@(x) isnumeric(x) && length(x)==2);
 p.addOptional('unit','',@isstr);
 p.addOptional('powfieldname','pow',@isstr);
+p.addOptional('aggregate',@mean,@(x) isa(x, 'function_handle'));
 parse(p,TF,varargin{:})
 
 %% Transform input
@@ -67,6 +71,7 @@ tlim        = p.Results.tlim;
 freq        = p.Results.freqs;
 unit        = p.Results.unit;
 pfname      = p.Results.powfieldname;
+aggfun      = @p.Results.aggregate;
 
 % no varargin for chans?
 if isnan(chans)
@@ -108,8 +113,8 @@ x = TF.times;
 y = squeeze(TF.freqs);
 z = TF.(pfname)(:,:,chans,subjs);
 
-%% make z 2-dimensional (i.e., average power over channels and/or subjects)
-z = mean(mean(z, 4), 3);
+%% make z 2-dimensional (i.e., aggregate power over channels and/or subjects)
+z = aggfun(aggfun(z, 4), 3);
 if all(all(isnan(z)))
     error('Power data are NaN. One reason could be that your condition does not have any trials.');
 end

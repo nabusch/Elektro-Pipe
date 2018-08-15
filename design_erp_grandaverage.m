@@ -83,7 +83,7 @@ for idesign = 1:length(EP.design_idx)
         % Load CFG file. I know, eval is evil, but this way we allow the user
         % to give the CFG function any arbitrary name, as defined in the EP
         % struct.
-        [pathstr,cfgname,ext] = fileparts(EP.cfgfile);
+        [pathstr, cfgname, ext] = fileparts(EP.cfgfile);
         addpath(pathstr)
         eval(['CFG = ' cfgname '(' num2str(subjects_idx(isub)) ', EP.S);']);
         
