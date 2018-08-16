@@ -460,6 +460,8 @@ if cfg.do_cleanline
         % FFT after cleanline
         [ampsc, EEG.cleanline.freqsc] = my_fft(EEG.data, 2, EEG.srate, EEG.pnts);
         EEG.cleanline.powc = mean(ampsc.^2, 3);
+        % Create figure in background
+        cleanline_qualityplot(EEG);
     else
         % FFT before cleanline
         [amps,  CONTEEG.cleanline.freqs] = my_fft(CONTEEG.data, 2, CONTEEG.srate, CONTEEG.pnts);
@@ -484,7 +486,7 @@ if cfg.do_cleanline
         %simply use the first.
         W = find(W, 1);
         winlength = CONTEEG.pnts / D(W);
-
+        
         [CONTEEG, com] = pop_cleanline(CONTEEG, ...
             'bandwidth', 2, 'chanlist', 1:CONTEEG.nbchan, ...
             'computepower', 0, 'linefreqs', [50 100], ...
@@ -492,21 +494,16 @@ if cfg.do_cleanline
             'pad',2, 'plotfigures', 0, ...
             'scanforlines', 1, 'sigtype', 'Channels', ...
             'tau', 100, 'verb', 1, ...
-            'SlidingWinLength', winlength, 'winstep', 4);
+            'SlidingWinLength', winlength/1000, 'winstep', winlength/1000);
         CONTEEG = eegh(com, CONTEEG);
         
         % FFT after cleanline
         [ampsc, CONTEEG.cleanline.freqsc] = my_fft(CONTEEG.data, 2, CONTEEG.srate, CONTEEG.pnts);
         CONTEEG.cleanline.powc = mean(ampsc.^2, 3);
-    end
-    
-    
-    
-    
-    % Create figure in background
-    cleanline_qualityplot(EEG);
+        % Create figure in background
+        cleanline_qualityplot(CONTEEG);
+    end  
 end
-
 
 % --------------------------------------------------------------
 % Detrend the data.
@@ -517,7 +514,6 @@ if cfg.do_detrend
     EEG = eeg_detrend(EEG);
     EEG = eegh('EEG = eeg_detrend(EEG);% https://github.com/widmann/erptools/blob/master/eeg_detrend.m', EEG);
 end
-
 
 % Convert back to single precision.
 EEG.data = single(EEG.data);
