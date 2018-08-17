@@ -53,7 +53,7 @@ parfor isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Preprocessing (filtering etc.).
     % --------------------------------------------------------------
-    EEG = func_prepareEEG(EEG, CFG, S, who_idx(isub));
+    [EEG, CONTEEG] = func_prepareEEG(EEG, CFG, S, who_idx(isub));
     
     
     % --------------------------------------------------------------

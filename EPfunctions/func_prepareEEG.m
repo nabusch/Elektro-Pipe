@@ -1,9 +1,12 @@
-function EEG = func_prepareEEG(EEG, cfg, S, who_idx)
+function [EEG, CONTEEG] = func_prepareEEG(EEG, cfg, S, who_idx)
 
 % Convert data to double precision, recommended for filtering and other
 % precedures.
 EEG.data = double(EEG.data);
 
+% if user specified to keep continuous data, CONTEEG is created as second
+% output argument. If cfg.keep_continuous is false, output empty dummy.
+CONTEEG = struct();
 
 % --------------------------------------------------------------
 % If replace_chans are defined for this subject, replace bad
@@ -478,8 +481,8 @@ if cfg.do_cleanline
         i = 0;
         while ~any(W)
             i = i + 1;
-            W = isInRange(CONTEEG.pnts./D, startrng(1) - step * i,...
-                startrng(2) + step * i);
+            W = (CONTEEG.pnts./D >= startrng(1) - step * i) &...
+                (CONTEEG.pnts./D <= startrng(2) + step * i);
         end
         
         %it's possible that we catch multiple possible values. In that case
@@ -517,3 +520,6 @@ end
 
 % Convert back to single precision.
 EEG.data = single(EEG.data);
+if cfg.keep_continuous
+    CONTEEG.data = single(CONTEEG.data);
+end
