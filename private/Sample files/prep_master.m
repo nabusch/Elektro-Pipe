@@ -43,9 +43,10 @@ EP.who = [1:10]; % Vector of numerical indices.
 try
     prep01_preproc(EP);
     %Send a notification via email when done or throwing error
-    system(['echo "Import and automatic preprocessing done!" | mail -s "Elektropipe notification" email@address.com']);
+    %Send a notification via email when done or throwing error
+    elektro_notify('YOUR@EMAIL.ADDRESS', 'Import and preprocessing done!')
 catch ME
-    system(['echo "',ME.message,'" | mail -s "Elektropipe notification" email@address.com']);
+    elektro_notify('YOUR@EMAIL.ADDRESS', ME);
 end
 %% PREP-2: Semi-automatic preparation for ICA.
 prep02_cleanbeforeICA;
@@ -54,9 +55,9 @@ prep02_cleanbeforeICA;
 try
     prep03_runICA(EP);
     %Send a notification via email when done or throwing error
-    system(['echo "All ICA computations done!" | mail -s "Elektropipe notification" email@address.com']);
+    elektro_notify('YOUR@EMAIL.ADDRESS', 'All ICA computations done!')
 catch ME
-    system(['echo "',ME.message,'" | mail -s "Elektropipe notification" email@address.com']);
+    elektro_notify('YOUR@EMAIL.ADDRESS', ME);
 end
 %% PREP-4: Reject ICA components.
 prep04_rejectICs(EP);
