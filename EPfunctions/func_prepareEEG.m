@@ -14,7 +14,7 @@ CONTEEG = struct();
 % --------------------------------------------------------------
 
 if isempty(S.replace_chans(who_idx)) || isnan(S.replace_chans(who_idx))
-    fprintf('No channels to replace.\n')
+    fprintf('No channels to replace.\n');
 else
     replace_chans = str2double(cell2mat(S.replace_chans(who_idx)));
     for ichan = 1:size(replace_chans,1)
@@ -51,7 +51,7 @@ EEG = eegh(com, EEG);
 if ~isempty(cfg.heog_chans)
     fprintf('Computing HEOG from channels %s and %s\n', ...
         EEG.chanlocs(cfg.heog_chans(1)).labels, ...
-        EEG.chanlocs(cfg.heog_chans(2)).labels)
+        EEG.chanlocs(cfg.heog_chans(2)).labels);
     
     iHEOG = EEG.nbchan + 1;
     EEG.nbchan = iHEOG;
@@ -82,8 +82,8 @@ end
 % --------------------------------------------------------------
 if cfg.do_resampling
     [pathstr, ~, ~] = fileparts(which('resample.m'));
-    rmpath([pathstr '/'])
-    addpath([pathstr '/'])
+    rmpath([pathstr '/']);
+    addpath([pathstr '/']);
     [EEG, com] = pop_resample( EEG, cfg.new_sampling_rate);
     EEG = eegh(com, EEG);
 end
@@ -254,7 +254,12 @@ if ~isempty(cfg.trig_omit) || ~isempty(cfg.trig_omit_inv)
             [foundlow, foundhigh] = deal(false);
             ipoch = ipoch + 1;
             % find the urevent index of the target trigger
-            tmpidx = find([EEG.epoch(irej).eventtype{:}] == cfg.trig_target);
+            if cfg.coregister_Eyelink
+                tmpidx = find(strcmp({EEG.epoch(irej).eventtype{:}},...
+                    num2str(cfg.trig_target)));
+            else
+                tmpidx = find([EEG.epoch(irej).eventtype{:}] == cfg.trig_target);
+            end
             urindx = EEG.epoch(irej).eventurevent{tmpidx};
             % sanity check
             assert(EEG.urevent(urindx).type == cfg.trig_target,...

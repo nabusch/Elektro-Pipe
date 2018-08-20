@@ -9,7 +9,7 @@ function EEG = func_importBehavior(EEG, cfg)
 
 
 % Load the logfile.
-load([cfg.dir_behavior cfg.subject_name '_Logfile.mat'])
+load([cfg.dir_behavior cfg.subject_name '_Logfile.mat']);
 
   
 % This code assumes that the "logfile" is a Matlab struct called Info.T,
@@ -18,7 +18,7 @@ load([cfg.dir_behavior cfg.subject_name '_Logfile.mat'])
 % Info.T in our new EEG structure, but we can do this only for fields that
 % have scalar values.
 
-% Change this lines accordingly if your structure has a different name.
+% Change these lines accordingly if your structure has a different name.
 Trials = Info.T;
 fields = fieldnames(Trials);
 TrialsOut = [];
@@ -31,29 +31,18 @@ end
 
 ntrials = length(Trials);
 
-for ifield = 1:length(fields)
-    
-   fieldlength = length(getfield(Trials,(fields{ifield}) ));
-   
-   Starttrial = 1;
-   while fieldlength == 0 || isempty(fieldlength)
-      Starttrial = Starttrial + 1;
-      fieldlength = length(getfield(Trials(Starttrial:end),(fields{ifield}) ));
-   end
-   
-   
-   if fieldlength == 1
-       
-       % Test if this field has only scalar values. If yes, copy it to the
-       % new "Logfile".
-       for itrial = 1:ntrials
-        TrialsOut(itrial).(fields{ifield}) = Trials(itrial).(fields{ifield});
-       end       
-       
-   end
+% loop over each field of the trial structure. Check if all values are
+% scalar. Strings are not considered scalar, but as soon as it's a string
+% array or cell of strings, ischar is false.
+for ifield = fields'    
+    res = arrayfun(@(x)(isscalar(x) | ischar(x)), [Trials.(ifield{:})]);
+    if ~all(res)
+        Trials = rmfield(Trials, ifield{:});
+    end
 end
 
-outfields = fieldnames(TrialsOut);
+
+outfields = fieldnames(Trials);
 
 
 % Run through all events and import the behavioral data. The important
@@ -69,7 +58,7 @@ for ievent = 1:length(EEG.event)
         % Check if the field in the log file is empty. If yes, fill with
         % arbitrary value.
         try
-        new_event_value = TrialsOut(thisepoch).(outfields{ifield});
+        new_event_value = Trials(thisepoch).(outfields{ifield});
         catch ME
             fprintf(2,['If you''re getting caught here, probably some trial(s) '...
                 'weren''t deleted in the EEG but in the logfile data.\n'...
