@@ -29,17 +29,21 @@ for isub = 1:length(who_idx)
     % struct.
     evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', EP.S);'];
     eval(evalstring);
-    
-    
+
     % Write a status message to the command line.
     fprintf('\nNow working on subject %s, (number %d of %d to process).\n\n', ...
         CFG.subject_name, isub, length(who_idx));
-    
+
     % ---------------------------------------------------------------------
     % Load data set.
     % ---------------------------------------------------------------------
     EEG = pop_loadset('filename', [CFG.subject_name '_import.set'] , ...
         'filepath', CFG.dir_eeg, 'loadmode', 'all');
+    
+    if CFG.keep_continuous
+        CONTEEG = pop_loadset('filename', [CFG.subject_name '_importCONT.set'] , ...
+            'filepath', CFG.dir_eeg, 'loadmode', 'all');
+    end
     
     % get amount of initial trials to store the amount of deleted ones in
     % the end
@@ -53,7 +57,7 @@ for isub = 1:length(who_idx)
         interp_chans = EP.S.interp_chans(who_idx(isub));
         % Warn about consequences for ICA
         if iscell(interp_chans) %it's not cell if not a single subject has to-be-interpolated channels
-            if ~cellfun(@isempty,interp_chans) && CFG.do_interp
+            if ~cellfun(@isempty, interp_chans) && CFG.do_interp
                 warning(['Your "SubjectsTable" spreadsheet tells me\n',...
                     'to interpolate one or more channels.\n',...
                     'This could obscure ICA in the next step.\n',...
@@ -117,6 +121,9 @@ for isub = 1:length(who_idx)
         str = sprintf('%d ', interp_chans);
         fprintf('Interpolating channel(S): %s\n', str);
         EEG = eeg_interp(EEG, interp_chans);
+        if CFG.keep_continuous
+            CONTEEG = eeg_interp(CONTEEG, interp_chans);
+        end
     end
     
     %% --------------------------------------------------------------------

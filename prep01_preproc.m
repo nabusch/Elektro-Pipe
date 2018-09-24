@@ -85,14 +85,13 @@ for isub = 1:length(who_idx)
     % Save data.
     % --------------------------------------------------------------
     if CFG.keep_continuous
-        [CONTEEG, com] = pop_editset(CONTEEG, 'setname', [CFG.subject_name ' import']);
+        [CONTEEG, com] = pop_editset(CONTEEG, 'setname', [CFG.subject_name ' importCONT']);
         CONTEEG = eegh(com, CONTEEG);
-        pop_saveset( CONTEEG, [CFG.subject_name  '_import.set'] , CFG.dir_eeg);
-    else
-        [EEG, com] = pop_editset(EEG, 'setname', [CFG.subject_name ' import']);
-        EEG = eegh(com, EEG);
-        pop_saveset( EEG, [CFG.subject_name  '_import.set'] , CFG.dir_eeg);
+        pop_saveset( CONTEEG, [CFG.subject_name  '_importCONT.set'] , CFG.dir_eeg);
     end
+    [EEG, com] = pop_editset(EEG, 'setname', [CFG.subject_name ' import']);
+    EEG = eegh(com, EEG);
+    pop_saveset( EEG, [CFG.subject_name  '_import.set'] , CFG.dir_eeg);
 end
 
 %write information to progress excel file
