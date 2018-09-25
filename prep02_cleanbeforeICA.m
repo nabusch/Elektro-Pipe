@@ -174,6 +174,7 @@ for isub = 1:length(who_idx)
     end
     plotRej.trend = trial2eegplot(EEG.reject.rejconst, EEG.reject.rejconstE,...
         EEG.pnts, EEG.reject.rejconstcol);
+    
     % ---------------------------------------------------------------------
     % 3. Reject improbable data
     %    Create a probability distribution for all data and reject trials
@@ -237,7 +238,7 @@ for isub = 1:length(who_idx)
                 EEG.pnts, EEG.trials);
             deleteme = deleteme | tmp;
         end
-        EEG = pop_rejepoch(EEG, JP_EEG.reject.rejjp, 0);
+        EEG = pop_rejepoch(EEG, deleteme, 0);
     end
     
     
@@ -264,12 +265,12 @@ for isub = 1:length(who_idx)
         
         
         %EOG
-        for ichan=find(ismember({EEG.chanlocs.labels},{'VEOG','HEOG'}))
+        for ichan=find(ismember({EEG.chanlocs.labels},{'VEOG', 'HEOG'}))
             col{ichan} = [1 0.0784314 0.576471]; %"deeppink"
         end
         %Eye
         for ichan=find(ismember({EEG.chanlocs.labels},...
-                {'Eyegaze_X','Eyegaze_Y','Pupil_Dilation'}))
+                {'Eyegaze_X', 'Eyegaze_Y', 'Pupil_Dilation'}))
             col{ichan} = [0 1 0];
         end
         
@@ -300,7 +301,7 @@ for isub = 1:length(who_idx)
         
         
         disp('Interrupting function now. Waiting for you to press')
-        disp('"Update marks", and hit "Continue" in Matlab editor menu')
+        disp('"Update marks", and hit "Continue" (or F5) in Matlab editor menu')
         keyboard
         
         % eegplot2trial cannot deal with multi-rejection
@@ -323,7 +324,11 @@ for isub = 1:length(who_idx)
     % Save data and edit SubjectsTable
     % ---------------------------------------------------------------------
     EEG = pop_editset(EEG, 'setname', [CFG.subject_name '_CleanBeforeICA.set']);
-    EEG = pop_saveset( EEG, [CFG.subject_name '_CleanBeforeICA.set'] , CFG.dir_eeg);
+    EEG = pop_saveset(EEG, [CFG.subject_name '_CleanBeforeICA.set'] , CFG.dir_eeg);
+    if CFG.keep_continuous
+        CONTEEG = pop_editset(CONTEEG, 'setname', [CFG.subject_name '_CleanBeforeICACONT.set']);
+        CONTEEG = pop_saveset(CONTEEG, [CFG.subject_name '_CleanBeforeICACONT.set'] , CFG.dir_eeg);
+    end
     
     % get amount of rejected trials
     nRej = nUrTrials - size(EEG.data,3);
