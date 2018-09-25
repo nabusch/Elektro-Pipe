@@ -24,3 +24,12 @@ Important columns in this table are:
 The code comes with a "samples" folder, which contains a sample SubjectsTable.xlsx, a sample cfg file (getcfg.m), and a script that illustrates how to run all these analyses
 
 
+## Adjustments for unfold compatibility
+- Prep01:
+  - creates two output files. (1) the regular epoched version, and (2) a continuous version, that does include eyetracking data and trial information.
+- Prep02:
+  - to-be-interpolated channels are interpolated in both files. Other than that, the continuous file is left untouched. 
+- Prep03:
+  - Run another HP-filter and overweight spike potentials to OPTICAT.
+- Prep04:
+  - copy weights to continuous file and remove components in both.
