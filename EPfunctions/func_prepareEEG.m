@@ -113,6 +113,10 @@ if cfg.do_hp_filter
                 'ftype', 'highpass', 'wtype', 'kaiser', ...
                 'warg', beta, 'forder', m);
             EEG = eegh(com, EEG);
+        case('eegfiltnew')
+            [EEG, com] = pop_eegfiltnew(...
+                EEG, cfg.hp_filter_limit, [], [], 0, [], 0);
+            EEG = eegh(com, EEG);
     end
 end
 
