@@ -227,7 +227,12 @@ for isub = 1:length(who_idx)
         EEG.pnts, EEG.reject.rejkurtcol);
     
     % combine info for plotting
-    plotRejshow = [plotRej.jp; plotRej.kurt; plotRej.thr; plotRej.trend];
+    fn = fieldnames(plotRej)';
+    foo = find(~structfun(@isempty, plotRej))';
+    plotRejshow = [];
+    for i = foo
+        plotRejshow = [plotRejshow; plotRej.(fn{i})];
+    end
     
     %combine info for auto-removing epochs
     if CFG.rej_auto
@@ -298,7 +303,6 @@ for isub = 1:length(who_idx)
         %plot data
         mypop_eegplot(EEG, 1, 1, 0,'submean','on', 'winlength', 15, 'winrej',...
             plotRejshow,'color',col,'command','global eegrej, eegrej = TMPREJ');
-        
         
         disp('Interrupting function now. Waiting for you to press')
         disp('"Update marks", and hit "Continue" (or F5) in Matlab editor menu')

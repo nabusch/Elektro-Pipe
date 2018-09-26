@@ -94,7 +94,8 @@ end
 % --------------------------------------------------------------
 if cfg.do_lp_filter
     [m, ~] = pop_firwsord('blackman', EEG.srate, cfg.lp_filter_tbandwidth);
-    [EEG, com] = pop_firws(EEG, 'fcutoff', cfg.lp_filter_limit, 'ftype', 'lowpass', 'wtype', 'blackman', 'forder', m);
+    [EEG, com] = pop_firws(EEG, 'fcutoff', cfg.lp_filter_limit, 'ftype',...
+        'lowpass', 'wtype', 'blackman', 'forder', m);
     EEG = eegh(com, EEG);
 end
 
@@ -114,8 +115,9 @@ if cfg.do_hp_filter
                 'warg', beta, 'forder', m);
             EEG = eegh(com, EEG);
         case('eegfiltnew')
-            [EEG, com] = pop_eegfiltnew(...
-                EEG, cfg.hp_filter_limit, [], [], 0, [], 0);
+            [EEG, com] = pop_eegfiltnew(EEG, cfg.hp_filter_limit, 0);
+            %   >> [EEG, com, b] = pop_eegfiltnew(EEG, locutoff, hicutoff, filtorder,
+%                                     revfilt, usefft, plotfreqz, minphase);
             EEG = eegh(com, EEG);
     end
 end
