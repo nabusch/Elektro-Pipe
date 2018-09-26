@@ -72,11 +72,20 @@ for isub = 1:length(who_idx)
     
     % overweight brief saccade intervals containing spike potentials (see Dimigen's OPTICAT)
     if CFG.ica_overweight_sp
-        EEG = pop_overweightevents(EEG, 'saccade',...
-            CFG.opticat_saccade_window, CFG.opticat_ow_proportion,...
-            CFG.opticat_rm_epochmean);
+        %% Mark Eyetracking based occular artifacts
+        % try to guess what saccades are called in our dataset
+        types = unique({EEG.event.type});
+        sacdx = cellfun(@(x) endsWith(x, 'saccade') ||...
+            startsWith(x, 'saccade'), types);
+        if sum(sacdx) ~= 1
+            error(['Could not determine unique saccade',...
+                ' identifier event. Consider renaming in EEG.event.type']);
+        end
+        EEG = pop_overweightevents(EEG, types{sacdx},...
+            [CFG.opticat_saccade_before, CFG.opticat_saccade_after],...
+            CFG.opticat_ow_proportion, CFG.opticat_rm_epochmean);
     end
-    % -------------------------------------------------------------- 
+    % --------------------------------------------------------------
     % Check how many components to extract and then run ICA. We need a
     % separate call to pop_runica in every test section because runica does
     % not accept 'pca', 0, even though the help message claims that this
