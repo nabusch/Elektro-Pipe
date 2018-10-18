@@ -71,7 +71,7 @@ tlim        = p.Results.tlim;
 freq        = p.Results.freqs;
 unit        = p.Results.unit;
 pfname      = p.Results.powfieldname;
-aggfun      = @p.Results.aggregate;
+aggfun      = p.Results.aggregate;
 
 % no varargin for chans?
 if isnan(chans)
