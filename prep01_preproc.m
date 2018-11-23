@@ -1,3 +1,4 @@
+
 function [] = prep01_preproc(EP)
 
 % Written by Niko Busch - WWU Muenster (niko.busch@gmail.com)
@@ -62,6 +63,8 @@ for isub = 1:length(who_idx)
     EEG = func_importBehavior(EEG, CFG);
     if CFG.keep_continuous
         CONTEEG.prep01epoch = EEG.epoch;
+        CONTEEG.contevent = CONTEEG.event;
+        CONTEEG.event = EEG.event;
         CONTEEG.trialinfo = EEG.trialinfo;
     end
     

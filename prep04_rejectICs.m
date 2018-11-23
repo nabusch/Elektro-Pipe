@@ -68,7 +68,7 @@ for isub = 1:length(who_idx)
         %         end
     end
     
-    %% Mark Eyetracking based occular artifacts
+    %% Auto-flag ocular ICs based on sac/fix variance ratio
     if CFG.eyetracker_ica
         % try to guess what fixations and saccades are called in our
         % dataset
@@ -82,7 +82,6 @@ for isub = 1:length(who_idx)
                 ' identifier event. Consider renaming in EEG.event.type']);
         end
         
-        % Auto-flag ocular ICs based on sac/fix variance ratio
         [EEG, vartable] = pop_eyetrackerica(EEG, types{sacdx},...
             types{fixdx}, [5 0], CFG.eyetracker_ica_varthresh, 2,...
             CFG.eyetracker_ica_feedback ~= 4, CFG.eyetracker_ica_feedback);
@@ -107,7 +106,11 @@ for isub = 1:length(who_idx)
     % Save data.
     % --------------------------------------------------------------
     EEG = pop_editset(EEG,'setname',[CFG.subject_name '_ICArejected.set']);
-    EEG = pop_saveset( EEG, [CFG.subject_name '_ICArej.set'] , CFG.dir_eeg);
+    EEG = pop_saveset(EEG, [CFG.subject_name '_ICArej.set'] , CFG.dir_eeg);
+    if strcmp(CFG.ica_rm_continuous, 'cont')
+        EEG = pop_editset(EEG, 'setname', [CFG.subject_name '_ICACONTrejected.set']);
+        EEG = pop_saveset(EEG, [CFG.subject_name '_ICACONTrej.set'], CFG.dir_eeg);
+    end
     
     %add info to table
     EP.S.has_ICAclean(who_idx(isub)) = 1;
