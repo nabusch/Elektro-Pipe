@@ -82,6 +82,13 @@ for isub = 1:length(who_idx)
                 ' identifier event. Consider renaming in EEG.event.type']);
         end
         
+        % make all latencies integers to avoid index warning in
+        % geticavariance.m
+        if all(arrayfun(@isscalar, [EEG.event.latency]))
+            tmp = cellfun(@int64, {EEG.event.latency}, 'UniformOutput', 0);
+            [EEG.event.latency] = tmp{:};
+        end
+        
         [EEG, vartable] = pop_eyetrackerica(EEG, types{sacdx},...
             types{fixdx}, [5 0], CFG.eyetracker_ica_varthresh, 2,...
             CFG.eyetracker_ica_feedback ~= 4, CFG.eyetracker_ica_feedback);
@@ -101,7 +108,9 @@ for isub = 1:length(who_idx)
     keyboard; % wait for user to fiddle around with SASICA
     EEG = evalin('base','EEG'); % SASICA stores the results in base workspace via assignin. So we have to use this workaround...
     EEG = eegh(com,EEG);
-    
+    %% Subtract the components identified via SASICA
+    [EEG, com] = pop_subcomp(EEG, find(EEG.reject.gcompreject),1);
+    EEG = eegh(com,EEG);
     % --------------------------------------------------------------
     % Save data.
     % --------------------------------------------------------------
