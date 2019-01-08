@@ -17,7 +17,6 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Prepare data.
     % --------------------------------------------------------------
-    
     % Load CFG file. I know, eval is evil, but this way we allow the user
     % to give the CFG function any arbitrary name, as defined in the EP
     % struct.
@@ -29,6 +28,9 @@ for isub = 1:length(who_idx)
         CFG.subject_name, isub, length(who_idx));
     
     % Load data set.
+    % If config says so,weights have been copied to continuous data.
+    % If ica_rm_continuous in config is 'cont', we want to remove
+    % components from continuous data and work with those.
     if CFG.keep_continuous && strcmp(CFG.ica_rm_continuous, 'cont')
         EEG = pop_loadset('filename', [CFG.subject_name '_ICACONT.set'],...
             'filepath', CFG.dir_eeg, 'loadmode', 'all');
@@ -97,9 +99,11 @@ for isub = 1:length(who_idx)
             fprintf(2, 'Hit continue or F5 to proceed!\n');
             keyboard; % wait for user to check eyetrackerica output
         end
-        %% Subtract the components identified via eyetrackerica
-        [EEG, com] = pop_subcomp(EEG, find(EEG.reject.gcompreject),1);
-        EEG = eegh(com,EEG);
+        %% deactivated the auto-subtraction. components will be marked in SASICA
+%         %% Subtract the components identified via eyetrackerica
+%         [EEG, com] = pop_subcomp(EEG, find(EEG.reject.gcompreject),1);
+%         EEG = eegh(com,EEG);
+
     end
     
     %% run SASICA on the remaining components to identify and mark EMG/EKG etc
@@ -107,18 +111,24 @@ for isub = 1:length(who_idx)
     fprintf(2, 'Hit continue or F5 to proceed!\n')
     keyboard; % wait for user to fiddle around with SASICA
     EEG = evalin('base','EEG'); % SASICA stores the results in base workspace via assignin. So we have to use this workaround...
-    EEG = eegh(com,EEG);
+    EEG = eegh(com, EEG);
+    
     %% Subtract the components identified via SASICA
-    [EEG, com] = pop_subcomp(EEG, find(EEG.reject.gcompreject),1);
-    EEG = eegh(com,EEG);
+    [EEG, com] = pop_subcomp(EEG, find(EEG.reject.gcompreject), 1);
+    EEG = eegh(com, EEG);
     % --------------------------------------------------------------
     % Save data.
     % --------------------------------------------------------------
-    EEG = pop_editset(EEG,'setname',[CFG.subject_name '_ICArejected.set']);
-    EEG = pop_saveset(EEG, [CFG.subject_name '_ICArej.set'] , CFG.dir_eeg);
-    if strcmp(CFG.ica_rm_continuous, 'cont')
-        EEG = pop_editset(EEG, 'setname', [CFG.subject_name '_ICACONTrejected.set']);
-        EEG = pop_saveset(EEG, [CFG.subject_name '_ICACONTrej.set'], CFG.dir_eeg);
+    if CFG.keep_continuous && strcmp(CFG.ica_rm_continuous, 'cont')
+        EEG = pop_editset(EEG, 'setname', [CFG.subject_name,...
+            '_ICACONTrejected.set']);
+        EEG = pop_saveset(EEG, [CFG.subject_name '_ICACONTrej.set'],...
+            CFG.dir_eeg);
+    else
+        EEG = pop_editset(EEG,'setname',[CFG.subject_name,...
+            '_ICArejected.set']);
+        EEG = pop_saveset(EEG, [CFG.subject_name '_ICArej.set'],...
+            CFG.dir_eeg);
     end
     
     %add info to table

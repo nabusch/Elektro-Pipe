@@ -330,6 +330,8 @@ for isub = 1:length(who_idx)
     EEG = pop_editset(EEG, 'setname', [CFG.subject_name '_CleanBeforeICA.set']);
     EEG = pop_saveset(EEG, [CFG.subject_name '_CleanBeforeICA.set'] , CFG.dir_eeg);
     if CFG.keep_continuous
+        % store behavioral coregistration in CONTEEG as well
+        CONTEEG.EpochEvent = EEG.event;
         CONTEEG = pop_editset(CONTEEG, 'setname', [CFG.subject_name '_CleanBeforeICACONT.set']);
         CONTEEG = pop_saveset(CONTEEG, [CFG.subject_name '_CleanBeforeICACONT.set'] , CFG.dir_eeg);
     end
