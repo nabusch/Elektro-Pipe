@@ -1,4 +1,3 @@
-
 function [] = prep01_preproc(EP)
 
 % Written by Niko Busch - WWU Muenster (niko.busch@gmail.com)

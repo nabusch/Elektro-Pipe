@@ -311,15 +311,17 @@ if ~isempty(cfg.trig_omit) || ~isempty(cfg.trig_omit_inv)
         end
         % get the latency information for later interpolation in unfold
         rejtrls = find(rejidx);
-        for irej = 1:length(minurindx)
-            EEG.uf_rej_latencies(irej, 1) = ...
-                EEG.urevent(minurindx(irej)).latency;
-            EEG.uf_rej_latencies(irej, 2) = ...
-                EEG.urevent(maxurindx(irej)).latency;
-            EEG.uf_rej_latencies(irej, 3) = rejtrls(irej);
-            EEG.uf_rej_latencies(irej, 4) = 0;
+        if ~isempty(rejtrls)
+            for irej = 1:length(minurindx)
+                EEG.uf_rej_latencies(irej, 1) = ...
+                    EEG.urevent(minurindx(irej)).latency;
+                EEG.uf_rej_latencies(irej, 2) = ...
+                    EEG.urevent(maxurindx(irej)).latency;
+                EEG.uf_rej_latencies(irej, 3) = rejtrls(irej);
+                EEG.uf_rej_latencies(irej, 4) = 0;
+            end
+            CONTEEG.uf_rej_latencies = EEG.uf_rej_latencies;
         end
-        CONTEEG.uf_rej_latencies = EEG.uf_rej_latencies;
     end
     EEG = pop_rejepoch(EEG, rejidx, 0);
     EEG = eegh(com, EEG);
