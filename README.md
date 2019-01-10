@@ -7,7 +7,7 @@ Installation:
 
 What you need:
 - EEGLAB
-- plugins: Cleanline, SASICA
+- plugins: Cleanline, SASICA, eye-eeg (*recent github version!*), unfold
 - SubjectsTable.xlsx (a sample is included in this repository): An Excel spreadsheet containing a list of your subjects and information about these datasets. Matlab claims to be able read also .odt files, but at least on our machine this does not work. 
 Important columns in this table are:
 
