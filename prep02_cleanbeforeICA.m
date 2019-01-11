@@ -275,7 +275,8 @@ for isub = 1:length(who_idx)
         end
         %Eye
         for ichan=find(ismember({EEG.chanlocs.labels},...
-                {'Eyegaze_X', 'Eyegaze_Y', 'Pupil_Dilation'}))
+                {'Eyegaze_X', 'Eyegaze_Y', 'Pupil_Dilation',...
+                'Eyegaze-X', 'Eyegaze-Y', 'Pupil-Dilation'}))
             col{ichan} = [0 1 0];
         end
         
