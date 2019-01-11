@@ -23,8 +23,8 @@ end
 
 %run in parallel over subjects. Note that this disables direct output of
 %the EEG struct to the caller.
-parfor isub = 1:length(who_idx)
-    
+%parfor (isub = 1:length(who_idx), EP.prep_parallel)
+for isub = 1:length(who_idx)    
     EEG = [];
     
     CFG = ALLCFG{isub};
@@ -53,13 +53,19 @@ parfor isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Preprocessing (filtering etc.).
     % --------------------------------------------------------------
-    EEG = func_prepareEEG(EEG, CFG, S, who_idx(isub));
+    [EEG, CONTEEG] = func_prepareEEG(EEG, CFG, S, who_idx(isub));
     
     
     % --------------------------------------------------------------
     % Import behavioral data .
     % --------------------------------------------------------------
     EEG = func_importBehavior(EEG, CFG);
+    if CFG.keep_continuous
+        CONTEEG.prep01epoch = EEG.epoch;
+        CONTEEG.contevent = CONTEEG.event;
+        CONTEEG.event = EEG.event;
+        CONTEEG.trialinfo = EEG.trialinfo;
+    end
     
     % --------------------------------------------------------------
     % Create quality plots
@@ -80,10 +86,14 @@ parfor isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Save data.
     % --------------------------------------------------------------
+    if CFG.keep_continuous
+        [CONTEEG, com] = pop_editset(CONTEEG, 'setname', [CFG.subject_name ' importCONT']);
+        CONTEEG = eegh(com, CONTEEG);
+        pop_saveset( CONTEEG, [CFG.subject_name  '_importCONT.set'] , CFG.dir_eeg);
+    end
     [EEG, com] = pop_editset(EEG, 'setname', [CFG.subject_name ' import']);
     EEG = eegh(com, EEG);
     pop_saveset( EEG, [CFG.subject_name  '_import.set'] , CFG.dir_eeg);
-    
 end
 
 %write information to progress excel file

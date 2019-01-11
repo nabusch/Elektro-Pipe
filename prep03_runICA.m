@@ -28,14 +28,14 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     
     % Write a status message to the command line.
-    fprintf('\nNow processing subject %s, (number %d of %d).\n\n', ...
+    fprintf('\nNow processing subject %s, (number %i of %i).\n\n', ...
         CFG.subject_name, isub, length(who_idx));
     
     % Load data set.
     EEG = pop_loadset('filename', [CFG.subject_name '_CleanBeforeICA.set'] , ...
         'filepath', CFG.dir_eeg, 'loadmode', 'all');
     
-    % assure that data rae in double precision (this enhances ICA power)
+    % assure that data is in double precision (this enhances ICA power)
     if ~isa(EEG.data,'double')
         fprintf('\nFound single precision data. Will convert to double precision for ICA...\n');
         EEG.data = double(EEG.data);
@@ -63,10 +63,29 @@ for isub = 1:length(who_idx)
                     'ftype', 'highpass', 'wtype', 'kaiser', ...
                     'warg', beta, 'forder', m);
                 EEG = eegh(com, EEG);
+            case('eegfiltnew')
+                [EEG, com] = pop_eegfiltnew(...
+                    EEG, CFG.hp_ICA_filter_limit, [], [], 0, [], 0);
+                EEG = eegh(com, EEG);
         end
     end
     
-    % -------------------------------------------------------------- 
+    % overweight brief saccade intervals containing spike potentials (see Dimigen's OPTICAT)
+    if CFG.ica_overweight_sp
+        %% Mark Eyetracking based occular artifacts
+        % try to guess what saccades are called in our dataset
+        types = unique({EEG.event.type});
+        sacdx = cellfun(@(x) endsWith(x, 'saccade') ||...
+            startsWith(x, 'saccade'), types);
+        if sum(sacdx) ~= 1
+            error(['Could not determine unique saccade',...
+                ' identifier event. Consider renaming in EEG.event.type']);
+        end
+        EEG = pop_overweightevents(EEG, types{sacdx},...
+            [CFG.opticat_saccade_before, CFG.opticat_saccade_after],...
+            CFG.opticat_ow_proportion, CFG.opticat_rm_epochmean);
+    end
+    % --------------------------------------------------------------
     % Check how many components to extract and then run ICA. We need a
     % separate call to pop_runica in every test section because runica does
     % not accept 'pca', 0, even though the help message claims that this
@@ -103,11 +122,8 @@ for isub = 1:length(who_idx)
             'extended', CFG.ica_extended, ...
             'chanind', CFG.ica_chans, ...
             'pca', CFG.ica_ncomps);
-        
-        
     else
         fprintf('Let EEGLAB calculate the number of components to extract.\n')
-        
         [EEG, com] = pop_runica(EEG, 'icatype', CFG.ica_type, ...
             'extended', CFG.ica_extended, ...
             'chanind', CFG.ica_chans);
@@ -117,10 +133,9 @@ for isub = 1:length(who_idx)
     if CFG.do_ICA_hp_filter
         nonhpEEG.icaweights = EEG.icaweights;
         nonhpEEG.icasphere = EEG.icasphere;
-        nonhpEEG.icawinv = EEG.icawinv;
         nonhpEEG.icachansind = EEG.icachansind;
-        nonhpEEG.icaact = EEG.icaact;
         EEG = nonhpEEG;
+        EEG = eeg_checkset(EEG); %let EEGLAB re-compute EEG.icaact & EEG.icawinv
     end
     
     EEG = eegh(com, EEG);
@@ -136,9 +151,32 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     EEG = pop_editset(EEG, 'setname', [CFG.subject_name '_ICA.set']);
     EEG = pop_saveset( EEG, [CFG.subject_name '_ICA.set'] , CFG.dir_eeg);
+    
+    % If config says so, copy weights to continuous dataset
+    if CFG.ica_continuous
+        disp('Copying weights to continuous data...')
+        % load continuous data
+        CONTEEG = pop_loadset('filename',...
+            [CFG.subject_name '_CleanBeforeICACONT.set'] , ...
+            'filepath', CFG.dir_eeg, 'loadmode', 'all');
+        
+        % copy weights
+        CONTEEG.icaweights = EEG.icaweights;
+        CONTEEG.icasphere = EEG.icasphere;
+        CONTEEG.icachansind = EEG.icachansind;
+        CONTEEG = eeg_checkset(CONTEEG); %let EEGLAB re-compute EEG.icaact & EEG.icawinv
+        
+        % and save this as well
+        CONTEEG = pop_editset(CONTEEG, 'setname',...
+            [CFG.subject_name '_ICACONT.set']);
+        CONTEEG = pop_saveset(CONTEEG,...
+            [CFG.subject_name '_ICACONT.set'] , CFG.dir_eeg);
+    end
 end
 
-    EP.S.has_ICA(who_idx) = 1;
-    writetable(EP.S, EP.st_file)
+EP.S.has_ICA(who_idx) = 1;
+writetable(EP.S, EP.st_file)
 
 fprintf('Done.\n')
+
+end

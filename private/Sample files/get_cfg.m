@@ -1,10 +1,14 @@
 function [CFG, S] = get_cfg(idx, S)
+% This function contains (almost) all parameters necessary to change EEG
+% data preprocessing in any desired direction. Make sure to check *each 
+% single option* in this function.
 
 %% ------------------------------------------------------------------------
 % Read info for this subject and get file names and dirctories.
 % -------------------------------------------------------------------------
 rootfilename    = which('get_cfg.m');
-rootpath        = rootfilename(1:regexp(rootfilename,[filesep,'Analysis',filesep,'EEG',filesep,'get_cfg.m']));
+rootpath        = rootfilename(1:regexp(rootfilename,...
+    [filesep, 'Analysis', filesep, 'EEG', filesep, 'get_cfg.m']));
 
 CFG.dir_main = rootpath;
 
@@ -22,54 +26,68 @@ end
 %% ------------------------------------------------------------------------
 % Data organization and content.
 % -------------------------------------------------------------------------
+% For GLM modelling with the unfold toolbox, you need continuous data.
+CFG.keep_continuous = false;
 
 % Triggers that mark stimulus onset. These events will be used for
-% epoching.
-CFG.trig_target = []; %e.g., [21:29 221:229]; 
-CFG.epoch_tmin  = []; %e.g., -2.000;
-CFG.epoch_tmax  = []; %e.g., 0.500;
+% epoching. In case of unfold-pipe, these are just pseudo-epochs, that will
+% only be used for coregistration with behavioral data and subsequently be
+% deleted.
+CFG.trig_target = []; %e.g., [21:29, 200:205]
+CFG.epoch_tmin  = []; %e.g., -2.000
+CFG.epoch_tmax  = []; %e.g., 0.500
 
-% Time limits of epochs.
-CFG.bsl_t_min = CFG.epoch_tmin;
-CFG.bsl_t_max = 0; 
-
-% If you already removed faulty trials (e.g., when a subject looked away) from your logfile,
-% then the amount of trials in the logfile does not match the amount of trials in the EEGdata.
-% If you sent special triggers that mark faulty trials in the EEGdata, enter them here to remove
-% all trials containing these triggers from your EEGdata. The result should be that EEGdata and
-% Logfile match again.
+% If you already removed faulty trials (e.g., when a subject looked away) 
+% from your logfile, then the amount of trials in the logfile does not 
+% match the amount of trials in the EEGdata. If you sent special triggers 
+% that mark faulty trials in the EEGdata, enter them here to remove all 
+% epochs containing these triggers from your EEGdata. The result should be 
+% that EEGdata and Logfile match again.
+% NOTE: See below for unfold/GLM/continuous (CFG.trig_trial_onset)
 CFG.trig_omit = [];
 
 % you may also want to delete just a few specific trials; e.g., the training
 % trials at the beginning
 CFG.trial_omit  = [];
 
-%remove epochs, that contain the target-trigger but not all of the triggers
-%specified here. Currently this can result in problems with the
-%coregistration of behavioral data.
-cfg.trig_omit_inv_mode = 'AND'; % 'AND' or 'OR'. Should trials that do not include all of these triggers (AND) or trials that do not include any of these triggers be removed?
+% remove epochs, that contain the target-trigger but not all of the triggers
+% specified here. Currently this can result in problems with the
+% coregistration of behavioral data. So think about what you're doing!
+CFG.trig_omit_inv_mode = 'AND'; % 'AND' or 'OR'. Should trials that do not include all of these triggers (AND) or trials that do not include any of these triggers be removed?
 CFG.trig_omit_inv = [] ;
 
 % Optional: If you are using the file-io in WM-utilities, you might want to
 % use ONLY triggers from the PC or ONLY triggers from the ViewPixx. To
 % delete epochs of one of the devices prior to epoching, specify the
 % to-be-kept device here.
-% This is *very specific to out lab*. So you can probably leave it
-% empty (default).
-CFG.trigger_device = []; % can be [],'lowbyte-PC' or 'highbyte-VPixx'
+% This is *very specific to out lab*.
+CFG.trigger_device = 'lowbyte-PC'; % can be [],'lowbyte-PC' or 'highbyte-VPixx'
 
 % Did you use online-eyetracking to mark bad trials in your logfile?
 % specify the fieldname of the field in your logfile struct that contains
 % this information. Check func_importbehavior for more information.
-CFG.badgaze_fieldname = 'badgaze';
+CFG.badgaze_fieldname = '';
 
 % Do you want to check the latencies of specific triggers within each
 % epoch?
 CFG.checklatency=[];
 CFG.allowedlatency = 3;
+
 % Do you want to delete trials that differ by more than CFG.allowedlatency ms
 % from the median latency AFTER coregistration with behavoral data?
 CFG.deletebadlatency = 0;
+
+% For GLM modelling with the unfold toolbox, the trigger and/or
+% latency-based rejections specified above will not make sense (continuous
+% data!). You can, however, specify a trigger that defines the trial onset 
+% (usually that's earlier than your target onset). The program will use all
+% sampling points between a trig_target and the preceding + following 
+% trig_trial_onset (which should equal the complete trial). It will then 
+% create a matrix of rejected trials' latencies in 
+% (CONT)EEG.uf_rej_latencies. This does currently not take care of 
+% artifacts detected other than with trigger or latency. You *can* use 
+% this later in unfold with, e.g., uf_continuousArtifactExclude.m
+CFG.trig_trial_onset = [];
 
 %% ------------------------------------------------------------------------
 % Parameters for data import and preprocessing.
@@ -93,10 +111,11 @@ CFG.chanlocfile = 'Custom_M34_V3_Easycap_Layout_EEGlab.sfp';%standard-10-5-cap38
 
 % Do you want to rereference the data at the import step (recommended)?
 % Since Biosemi does not record with reference, this improves signal
-% quality. This does not need ot be the postprocessing refrence you use for
+% quality. This does not need to be the postprocessing refrence you use for
 % subsequent analyses.
 CFG.do_preproc_reref    = 1;
 CFG.preproc_reference   = []; % (31=Pz@Biosemi,32=Pz@CustomM43Easycap);  'robust' for robust average. Requires PREP extension & fix in line 102 of performReference.m (interpoled -> interpolated; already filed as issue on github)
+% usually, the preproc reference is kept
 CFG.postproc_reference  = []; % empty = average reference
 
 % Do you want to have a new sampling rate?
@@ -104,11 +123,14 @@ CFG.do_resampling     = 1;
 CFG.new_sampling_rate = 512;
 
 % Do you want to high-pass filter the data?
+% You can optionally choose to apply an extreme high-pass filter to
+% calculate ICA weights and apply them to your less-extreme high-pass
+% filtered data. For the ICA-related high-pass filter, see below.
 CFG.do_hp_filter = 1;
-CFG.hp_filter_type = 'kaiser'; % or 'butterworth' - not recommended
-CFG.hp_filter_limit = 0.5; 
-CFG.hp_filter_tbandwidth = 0.2;
-CFG.hp_filter_pbripple = 0.01;
+CFG.hp_filter_type = 'eegfiltnew'; % or 'butterworth', 'eegfiltnew' or kaiser - not recommended
+CFG.hp_filter_limit = 0.1; 
+CFG.hp_filter_tbandwidth = 0.2;% only used for kaiser
+CFG.hp_filter_pbripple = 0.01;% only used for kaiser
 
 % Do you want to low-pass filter the data?
 CFG.do_lp_filter = 1;
@@ -116,7 +138,7 @@ CFG.lp_filter_limit = 100;
 CFG.lp_filter_tbandwidth = 5;
 
 % Do you want to notch-filter the data? (Cleanline should be sufficient in most cases)
-CFG.do_notch_filter = 1;
+CFG.do_notch_filter = 0;
 CFG.notch_filter_lower = 49;
 CFG.notch_filter_upper = 51;
 
@@ -138,26 +160,25 @@ CFG.rej_auto = 0;
 % Do you want to reject trials based on amplitude criterion? (automatic and
 % manual)
 CFG.do_rej_thresh   = 1;
-CFG.rej_thresh      = 500;
+CFG.rej_thresh      = 450;
 CFG.rej_thresh_tmin = CFG.epoch_tmin;
 CFG.rej_thresh_tmax = CFG.epoch_tmax;
 
 % Do you want to reject trials based on slope?
-CFG.do_rej_trend       = 1;
+CFG.do_rej_trend       = 0;
 CFG.rej_trend_winsize  = CFG.new_sampling_rate * abs(CFG.epoch_tmin - CFG.epoch_tmax);
 CFG.rej_trend_maxSlope = 30;
 CFG.rej_trend_minR     = 0; %0 = just slope criterion
 
 % Do you want to reject trials based on joint probability?
 CFG.do_rej_prob         = 1;
-CFG.rej_prob_locthresh  = 6;
-CFG.rej_prob_globthresh = 3; 
+CFG.rej_prob_locthresh  = 7;
+CFG.rej_prob_globthresh = 4; 
 
 % Do you want to reject trials based on kurtosis?
-CFG.do_rej_kurt         = 1;
-CFG.rej_kurt_locthresh  = 8;
-CFG.rej_kurt_globthresh = 4; 
-
+CFG.do_rej_kurt         = 0;
+CFG.rej_kurt_locthresh  = 6;
+CFG.rej_kurt_globthresh = 3; 
 
 % The SubjectsTable.xlsx contains a column "interp_chans". Do you want to
 % interpolate these channels in prep02 (i.e., prior to ICA)?
@@ -169,19 +190,30 @@ CFG.ignore_interp_chans = 1;
 
 %% Eyelink related input
 % Do you want to coregister eyelink eyetracking data?
-CFG.coregister_Eyelink = 0; %0=don't coregister
+CFG.coregister_Eyelink = 1; %0=don't coregister
 % Do you want to use Eyetracking data instead of HEOG & VEOG for ICA?
-CFG.eye_ica            = 1;
+% WARNING: currently this only suggests to use one of the EYE-channels in
+% SASICA. I suggest using EYE-ICA instead (see below)
+CFG.eye_ica            = 0;
+
+% Select occular ICs based on ET-data? requires EYE-ICA in a recent
+% (github, not plugin-manager) version, and EEGLab>v.14.1
+CFG.eyetracker_ica           = 1;
+CFG.eyetracker_ica_varthresh = 1.1; % variance ratio threshold
+CFG.eyetracker_ica_sactol    = [5 10]; % Extra temporal tolerance around saccade onset and offset
+CFG.eyetracker_ica_feedback  = 1; % do you want to see plots of (1) all selected bad components (2) all good (3) bad & good or (4) no plots?
+
 % Only if CFG.eye_ica is activated, you can opt to use an additional column
 % in Your EP-Excel sheet that is 1 for subjects where eyetracking data
 % should be used for ICA component selection and 0 for those where EOG
 % should be used instead. This makes sense, when Eyetracking data are very
 % noisy.
-CFG.eye_ica_useEP      = 1;
+CFG.eye_ica_useEP      = 0;
+
 % Coregistration is done by using the first instance of the first value and
 % the last instance of the second value. Everything inbetween is downsampled
 % and interpolated.
-CFG.eye_startEnd       = [];
+CFG.eye_startEnd       = []; e.g., [10,20]
 
 % After data has been coregistered, eyetracking data will be included in
 % the EEG struct. Do you want to keep the eyetracking-only files (ASCII &
@@ -198,15 +230,32 @@ CFG.ica_ncomps = numel(CFG.data_chans)-3; % if ica_ncomps==0, determine data ran
 % settings will override this parameter.
 
 % Do you want to do an extra run of high-pass filtering before ICA (i.e., after segmentation)?
-% Note that this is not recommended, unless trials are really long
+% see Olaf Dimigen's OPTICAT.
 % The data as filtered below are only used to compute the ICA. The
 % activation is then reprojected to the original data filtered as indicated
-% above in the section 'filters'
+% above in the section 'filters'.
 CFG.do_ICA_hp_filter = 1;
-CFG.hp_ICA_filter_type = 'kaiser'; % or 'butterworth' - not recommended
-CFG.hp_ICA_filter_limit = 1.5; 
-CFG.hp_ICA_filter_tbandwidth = 0.2;
-CFG.hp_ICA_filter_pbripple = 0.01;
+CFG.hp_ICA_filter_type = 'eegfiltnew'; % 'butterworth' or 'eegfiltnew' or kaiser - not recommended
+CFG.hp_ICA_filter_limit = 2.5; 
+CFG.hp_ICA_filter_tbandwidth = 0.2;% only used for kaiser
+CFG.hp_ICA_filter_pbripple = 0.01;% only used for kaiser
+
+% Olaf Dimigen recommends to overweight spike potentials using his OPTICAT
+% approach. Do you want to do this prior to computung ICA?
+CFG.ica_overweight_sp = 1;
+CFG.opticat_saccade_before = -0.02; % time window to overweight (-20 to 10 ms)
+CFG.opticat_saccade_after = 0.01;
+CFG.opticat_ow_proportion = 0.5; % overweighting proportion
+CFG.opticat_rm_epochmean = true; % subtract mean from overweighted epochs? (recommended)
+
+% if CFG.keep_continuous is true, should ICA weights be backprojected to
+% the continuous data?
+CFG.ica_continuous = 0;
+
+% if CFG.keep_continuous and CFG.ica_continuous are true, do you want to
+% remove components from epoched data only ('epoch') or continuous data only 
+% ('cont', default)? 
+CFG.ica_rm_continuous = 'epoch'; % if you want to do both, simply change this line and run prep04 again.
 
 
 %% Parameters for SASICA.

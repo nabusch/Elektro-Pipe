@@ -29,17 +29,21 @@ for isub = 1:length(who_idx)
     % struct.
     evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', EP.S);'];
     eval(evalstring);
-    
-    
+
     % Write a status message to the command line.
     fprintf('\nNow working on subject %s, (number %d of %d to process).\n\n', ...
         CFG.subject_name, isub, length(who_idx));
-    
+
     % ---------------------------------------------------------------------
     % Load data set.
     % ---------------------------------------------------------------------
     EEG = pop_loadset('filename', [CFG.subject_name '_import.set'] , ...
         'filepath', CFG.dir_eeg, 'loadmode', 'all');
+    
+    if CFG.keep_continuous
+        CONTEEG = pop_loadset('filename', [CFG.subject_name '_importCONT.set'] , ...
+            'filepath', CFG.dir_eeg, 'loadmode', 'all');
+    end
     
     % get amount of initial trials to store the amount of deleted ones in
     % the end
@@ -53,7 +57,7 @@ for isub = 1:length(who_idx)
         interp_chans = EP.S.interp_chans(who_idx(isub));
         % Warn about consequences for ICA
         if iscell(interp_chans) %it's not cell if not a single subject has to-be-interpolated channels
-            if ~cellfun(@isempty,interp_chans) && CFG.do_interp
+            if ~cellfun(@isempty, interp_chans) && CFG.do_interp
                 warning(['Your "SubjectsTable" spreadsheet tells me\n',...
                     'to interpolate one or more channels.\n',...
                     'This could obscure ICA in the next step.\n',...
@@ -117,6 +121,9 @@ for isub = 1:length(who_idx)
         str = sprintf('%d ', interp_chans);
         fprintf('Interpolating channel(S): %s\n', str);
         EEG = eeg_interp(EEG, interp_chans);
+        if CFG.keep_continuous
+            CONTEEG = eeg_interp(CONTEEG, interp_chans);
+        end
     end
     
     %% --------------------------------------------------------------------
@@ -167,6 +174,7 @@ for isub = 1:length(who_idx)
     end
     plotRej.trend = trial2eegplot(EEG.reject.rejconst, EEG.reject.rejconstE,...
         EEG.pnts, EEG.reject.rejconstcol);
+    
     % ---------------------------------------------------------------------
     % 3. Reject improbable data
     %    Create a probability distribution for all data and reject trials
@@ -219,7 +227,12 @@ for isub = 1:length(who_idx)
         EEG.pnts, EEG.reject.rejkurtcol);
     
     % combine info for plotting
-    plotRejshow = [plotRej.jp; plotRej.kurt; plotRej.thr; plotRej.trend];
+    fn = fieldnames(plotRej)';
+    foo = find(~structfun(@isempty, plotRej))';
+    plotRejshow = [];
+    for i = foo
+        plotRejshow = [plotRejshow; plotRej.(fn{i})];
+    end
     
     %combine info for auto-removing epochs
     if CFG.rej_auto
@@ -230,7 +243,7 @@ for isub = 1:length(who_idx)
                 EEG.pnts, EEG.trials);
             deleteme = deleteme | tmp;
         end
-        EEG = pop_rejepoch(EEG, JP_EEG.reject.rejjp, 0);
+        EEG = pop_rejepoch(EEG, deleteme, 0);
     end
     
     
@@ -257,12 +270,13 @@ for isub = 1:length(who_idx)
         
         
         %EOG
-        for ichan=find(ismember({EEG.chanlocs.labels},{'VEOG','HEOG'}))
+        for ichan=find(ismember({EEG.chanlocs.labels},{'VEOG', 'HEOG'}))
             col{ichan} = [1 0.0784314 0.576471]; %"deeppink"
         end
         %Eye
         for ichan=find(ismember({EEG.chanlocs.labels},...
-                {'Eyegaze_X','Eyegaze_Y','Pupil_Dilation'}))
+                {'Eyegaze_X', 'Eyegaze_Y', 'Pupil_Dilation',...
+                'Eyegaze-X', 'Eyegaze-Y', 'Pupil-Dilation'}))
             col{ichan} = [0 1 0];
         end
         
@@ -291,9 +305,8 @@ for isub = 1:length(who_idx)
         mypop_eegplot(EEG, 1, 1, 0,'submean','on', 'winlength', 15, 'winrej',...
             plotRejshow,'color',col,'command','global eegrej, eegrej = TMPREJ');
         
-        
         disp('Interrupting function now. Waiting for you to press')
-        disp('"Update marks", and hit "Continue" in Matlab editor menu')
+        disp('"Update marks", and hit "Continue" (or F5) in Matlab editor menu')
         keyboard
         
         % eegplot2trial cannot deal with multi-rejection
@@ -316,7 +329,13 @@ for isub = 1:length(who_idx)
     % Save data and edit SubjectsTable
     % ---------------------------------------------------------------------
     EEG = pop_editset(EEG, 'setname', [CFG.subject_name '_CleanBeforeICA.set']);
-    EEG = pop_saveset( EEG, [CFG.subject_name '_CleanBeforeICA.set'] , CFG.dir_eeg);
+    EEG = pop_saveset(EEG, [CFG.subject_name '_CleanBeforeICA.set'] , CFG.dir_eeg);
+    if CFG.keep_continuous
+        % store behavioral coregistration in CONTEEG as well
+        CONTEEG.EpochEvent = EEG.event;
+        CONTEEG = pop_editset(CONTEEG, 'setname', [CFG.subject_name '_CleanBeforeICACONT.set']);
+        CONTEEG = pop_saveset(CONTEEG, [CFG.subject_name '_CleanBeforeICACONT.set'] , CFG.dir_eeg);
+    end
     
     % get amount of rejected trials
     nRej = nUrTrials - size(EEG.data,3);
