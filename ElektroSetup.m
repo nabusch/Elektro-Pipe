@@ -65,14 +65,18 @@ if installEP
             %check status
             [status,command] = system('git fetch');
             if strfind(command,'fatal')
-                error('This does not seem to be a git repository.')
-            end
-            [status,command] = system('git status'); %0 if up-to-data
-            if strfind(command,'Your branch is behind')
-                [status,command] = system('git pull')
+                warning(['Couldn''t update. Is this a git ',...
+                    'repository? If so, are you using encrypted access',...
+                    ' (e.g., with gitkraken)? In the latter case, ',...
+                    'please git-pull somewhere else.']);
+            else
+                [status,command] = system('git status'); %0 if up-to-data
+                if strfind(command,'Your branch is behind')
+                    [status,command] = system('git pull');
+                end
             end
         else
-            [status,command] = system('git clone https://github.com/nabusch/Elektro-Pipe.git')
+            [status,command] = system('git clone https://github.com/nabusch/Elektro-Pipe.git');
             if status==128
                 error('Could not download Elektro-Pipe');
             end
@@ -84,7 +88,19 @@ if installEP
     if verLessThan('matlab','9.1')
         setInitialWorkingFolder;
     else
-        cd(userpath);
+        try
+            cd(userpath);
+        catch
+            uiwait(warndlg(['Couldn''t detect your MATLAB folder. ',...
+                'We''ll need to add a line to your startup.m script ',...
+                'or create a new startup.m. ',...
+                'Please locate your MATLAB folder (usually ',...
+                '<C:\Users\USERNAME\Documents\MATLAB> or </home/USER/',...
+                'documents/MATLAB>'],...
+                'Okay!'));
+            startupDir = uigetdir;
+            cd(startupDir);
+        end
     end
     fid = fopen('startup.m','a');
     AppendStartup = 1;
@@ -112,10 +128,24 @@ if installEP
     end
     
     %check if 16-bit triggers are installed.
-    if verLessThan('matlab','9.1')
-        setInitialWorkingFolder;
+    if ~exist('startupDir', 'var')
+        if verLessThan('matlab','9.1')
+            setInitialWorkingFolder;
+        else
+            try
+                cd(userpath);
+            catch
+                uiwait(warndlg(['Couldn''t detect your MATLAB folder. ',...
+                    'We''ll need to add a line to your startup.m script ',...
+                    'or create a new startup.m. ',...
+                    'Please locate your MATLAB folder (usually ',...
+                    '<C:\Users\USERNAME\Documents\MATLAB> or </home/USER/',...
+                    'documents/MATLAB>'],...
+                    'Okay!'));
+            end
+        end
     else
-        cd(userpath);
+        cd(startupDir);
     end
     conts = dir;
     if ~ismember({'WM_utilities'},{conts.name})
@@ -263,7 +293,9 @@ if setupProj
 
 end
 cd(URDIR);
-h= msgbox('Done! You can find a ElektroReadMe.txt file in your new project folder. Read it carefully to get a few specials.', 'ElektroSetup');
+h= msgbox(['Done! You can find a ElektroReadMe.txt file in your new',...
+    ' project folder (if you created one). Read it carefully to get',...
+    ' a few specials.'], 'ElektroSetup');
 end
 
 
