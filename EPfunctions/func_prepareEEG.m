@@ -74,21 +74,6 @@ end
 
 [EEG] = pop_chanedit(EEG, 'lookup', cfg.chanlocfile);
 
-
-% --------------------------------------------------------------
-% Downsample data. Removing and adding back the path is necessary for
-% avoiding an error of the resample function. Not sure why. Solution is
-% explained here: https://sccn.ucsd.edu/bugzilla/show_bug.cgi?id=1184
-% --------------------------------------------------------------
-if cfg.do_resampling
-    [pathstr, ~, ~] = fileparts(which('resample.m'));
-    rmpath([pathstr '/']);
-    addpath([pathstr '/']);
-    [EEG, com] = pop_resample( EEG, cfg.new_sampling_rate);
-    EEG = eegh(com, EEG);
-end
-
-
 % --------------------------------------------------------------
 % Filter the data.
 % --------------------------------------------------------------
@@ -126,6 +111,21 @@ if cfg.do_notch_filter
     EEG = pop_eegfiltnew(EEG, cfg.notch_filter_lower,...
         cfg.notch_filter_upper, [], 1);
 end
+
+
+% --------------------------------------------------------------
+% Downsample data. Removing and adding back the path is necessary for
+% avoiding an error of the resample function. Not sure why. Solution is
+% explained here: https://sccn.ucsd.edu/bugzilla/show_bug.cgi?id=1184
+% --------------------------------------------------------------
+if cfg.do_resampling
+    [pathstr, ~, ~] = fileparts(which('resample.m'));
+    rmpath([pathstr '/']);
+    addpath([pathstr '/']);
+    [EEG, com] = pop_resample( EEG, cfg.new_sampling_rate);
+    EEG = eegh(com, EEG);
+end
+
 
 % --------------------------------------------------------------
 % If wanted: re-reference to new reference, but exclude the new bipolar
