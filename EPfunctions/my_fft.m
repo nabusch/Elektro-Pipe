@@ -15,7 +15,7 @@ function [amps, freqs] = my_fft(data, timedim, srate, npoints, return_complex);
 % Example:
 % [amps, freqs] = my_fft(EEG.data, 2, EEG.srate, 1024)
 %
-% Written by Niko Busch - Charit? Berlin (niko.busch@gmail.com)
+% Written by Niko Busch - Charite Berlin (niko.busch@gmail.com)
 %
 % 2011-05-23
 
@@ -23,15 +23,14 @@ if nargin==4
     return_complex = 0;
 end
 
-
 % Create the frequency axis.
 if mod(npoints,2)==0
     k=-npoints/2:npoints/2-1; % N even
 else
     k=-(npoints-1)/2:(npoints-1)/2; % N odd
 end
-T=npoints/srate;
-freqs=k/T; 
+T = npoints/srate;
+freqs = k/T; 
 
 
 % Remove mean from data.
@@ -46,27 +45,14 @@ freqs=k/T;
 % Compute and normalize FFT.
 X = fft(data, npoints, timedim)/size(data,timedim); 
 
-
 % Extract only the positive half of the spectrum
-cutOff = ceil(npoints/2);
+cutOff = freqs>0;
+% ..no matter what the order of X is..
+inds = repmat({':'}, 1, ndims(X));
+inds{timedim} = cutOff;
+X = X(inds{:});
 
-Xstring = 'X = X(';
-for d = 1:ndims(X)
-    if d==timedim
-        Xstring = [Xstring '1:cutOff'];
-    else
-        Xstring = [Xstring ':'];
-    end
-    
-    if d<ndims(X)
-        Xstring = [Xstring ','];
-    end
-end
-Xstring = [Xstring ');'];
-eval(Xstring);
-
-freqs = freqs(cutOff+1:end);
-
+freqs = freqs(cutOff);
 
 % Compute the power.
 if return_complex==1
