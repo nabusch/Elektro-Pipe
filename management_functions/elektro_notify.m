@@ -73,9 +73,11 @@ end
 unixworked = 1;
 if isunix || ismac
     try
-        system(sprintf('echo "%s" | mail -s "%s" %s', message, header, email));
+        stat = system(sprintf('echo "%s" | mail -s "%s" %s',...
+            message, header, email));
+        assert(stat==0, 'non-zero mail status');
     catch
-        disp('Could not send E-Mail. ''mail'' in terminal not configured?');
+        disp('Could not send E-Mail. ''mail'' in terminal not configured? Run apt install mailutils');
     end
 end
 if ispc || ~unixworked
