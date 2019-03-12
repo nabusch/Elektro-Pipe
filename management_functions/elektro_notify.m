@@ -76,6 +76,7 @@ if isunix || ismac
         stat = system(sprintf('echo "%s" | mail -s "%s" %s',...
             message, header, email));
         assert(stat==0, 'non-zero mail status');
+		unixworked = 0;
     catch
         disp('Could not send E-Mail. ''mail'' in terminal not configured? Run apt install mailutils');
     end
