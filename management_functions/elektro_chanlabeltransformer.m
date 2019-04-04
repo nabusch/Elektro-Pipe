@@ -35,7 +35,8 @@ if isa(channels, 'cell')
     disp('chanlabeltransformer: String vector of labels detected.');
     init_type = 'labels';
 elseif isnumeric(channels)
-    if all((channels == 1 | channels == 0))
+    if all((channels == 1 | channels == 0)) &&...
+            length(channels) == length(chanlocs)
         disp('chanlabeltransformer: Logical vector of indices detected.');
         init_type = 'logical';
         channels = logical(channels);
