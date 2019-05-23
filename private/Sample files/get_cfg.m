@@ -292,4 +292,20 @@ CFG.single.tf_chans       = []; %cell with characters or vector with indeces
 CFG.single.tf_freqlimits  = []; %in Hz
 CFG.single.tf_timelimits  = []; %in seconds
 
+%% FFT analysis
+CFG.fft_chans   = CFG.data_chans;
+CFG.fft_npoints = 'auto'; %npoints as in niko busch's 'my_fft' can be 'auto', meaning N = raw datapoints
+CFG.fft_time    = [2000, 2500]; %in ms
+CFG.fft_timedim = 'auto'; %usually auto is fine. will warn you if that doesn't work.
+CFG.fft_chandim = 'auto'; %usually auto is fine. will warn you if that doesn't work.
+CFG.fft_srate   = 'auto'; %usually auto is fine. will warn you if that doesn't work.
+CFG.fft_returncomplex = 0;
+CFG.fft_dobsl   = 1; %run basline subtraction? if 1, needs bsltime in seconds.
+CFG.fft_bsltime = [1000, 1500]; %in ms
+CFG.fft_bslnpoints = 'auto';
+CFG.fft_verbose = 'on'; % if not specified: overwritten by EP.verbose
+
+%% FFT single-trial analysis
+CFG.single.fft_chans = [];%[13:32, 56:64]; %cell with characters or vector with indeces
+CFG.single.fft_time  = [];%[1, 3];
 end
