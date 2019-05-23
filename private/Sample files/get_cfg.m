@@ -47,7 +47,9 @@ CFG.epoch_tmax  = []; %e.g., 0.500
 CFG.trig_omit = [];
 
 % you may also want to delete just a few specific trials; e.g., the training
-% trials at the beginning
+% trials at the beginning. Be cautios, this omits trials solely in EEG and may
+% result in different trial orders in logfiles and EEG. Only use this parameter
+% to delete trials that are in the EEG but not in the logfiles.
 CFG.trial_omit  = [];
 
 % remove epochs, that contain the target-trigger but not all of the triggers
