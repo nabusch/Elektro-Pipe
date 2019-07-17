@@ -1,4 +1,4 @@
-function ALLEEG = design_erp_grandaverage(EP);
+function ALLEEG = design_erp_grandaverage(EP)
 %function eeg_grandaverage(cfg, subjectidx, filenamebase, d, designidx, inpath, outpath)
 %
 % This function computes the grandaverage ERP for a group of subjects. The

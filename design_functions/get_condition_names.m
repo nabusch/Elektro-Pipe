@@ -22,12 +22,14 @@ for icondition = 1:length(DINFO.design_matrix)
         if factor_level <= length(D.factor_values{ifactor}) % wrong if this is a main effect, i.e. the last factor level.
             factor_value = D.factor_values{ifactor}{factor_level};
             
-            if ischar(factor_value)
+            if ischar(factor_value) % single string
                 factor_level_string = factor_value;
+            elseif isa(factor_value, 'function_handle') % function handle
+                factor_level_string = char(factor_value);
             else
-                if length(factor_value) < 3
+                if length(factor_value) < 3 %up to 3 values still make sense in the string
                     factor_level_string = mat2str(factor_value);
-                else
+                else % if more, insert a colon to indicate range
                     factor_level_string = [mat2str(factor_value(1)) ':' mat2str(factor_value(end))];
                 end
             end
