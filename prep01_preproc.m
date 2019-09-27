@@ -1,6 +1,12 @@
 function [] = prep01_preproc(EP)
 
 % Written by Niko Busch - WWU Muenster (niko.busch@gmail.com)
+
+
+% Check dependencies
+elektro_dependencies()
+
+
 [cfg_dir, cfg_name, ~] = fileparts(EP.cfg_file);
 [sub_dir, sub_name, ~] = fileparts(EP.cfg_file);
 
@@ -100,10 +106,10 @@ end
 if ALLCFG{end}.deletebadlatency
     for isub = 1:length(who_idx)
         CFG = ALLCFG{isub};
-        fid=fopen([CFG.dir_eeg,'badlatency.txt']);
-        val = fscanf(fid,'%i');
+        fid = fopen([CFG.dir_eeg, 'badlatency.txt']);
+        val = fscanf(fid, '%i');
         fclose(fid);
-        delete([CFG.dir_eeg,'badlatency.txt']);
+        delete([CFG.dir_eeg, 'badlatency.txt']);
         S.N_BadLatencyRejections(who_idx(isub)) = val;
     end
 end
