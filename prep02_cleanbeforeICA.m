@@ -302,8 +302,20 @@ for isub = 1:length(who_idx)
         axis off; hold off;
         
         %plot data
+        % set default to 1 for backward compatibility
+        if ~isfield(CFG, 'display_events')
+            CFG.display_events = 1;
+        end
+        if CFG.display_events
+            commands = {'command', 'global eegrej, eegrej = TMPREJ'};
+        else
+            disp(['NOTE: You turned off events. To turn them on again,',...
+                ' set CFG.display_events to true']);
+            commands = {'command', 'global eegrej, eegrej = TMPREJ',...
+                'events', []};
+        end
         mypop_eegplot(EEG, 1, 1, 0,'submean','on', 'winlength', 15, 'winrej',...
-            plotRejshow,'color',col,'command','global eegrej, eegrej = TMPREJ');
+            plotRejshow,'color',col, commands{:});
         
         disp('Interrupting function now. Waiting for you to press')
         disp('"Update marks", and hit "Continue" (or F5) in Matlab editor menu')

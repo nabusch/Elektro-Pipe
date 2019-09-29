@@ -159,6 +159,11 @@ CFG.do_detrend = 0;
 % automatically delete detected trials or inspect them after deletion?
 CFG.rej_auto = 0;
 
+% Just for semi-automatic selection (i.e., CFG.rej_auto is false):
+%  Do you want to display events in the eegplot (takes much longer to
+%  plot, due to eyetracker events)?
+CFG.display_events = 0;
+
 % Do you want to reject trials based on amplitude criterion? (automatic and
 % manual)
 CFG.do_rej_thresh   = 1;
