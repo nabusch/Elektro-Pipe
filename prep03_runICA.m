@@ -17,10 +17,25 @@ for isub=1:length(who_idx)
     evalstring = ['ALLCFG{',num2str(isub),'} = ' cfg_name '(' num2str(who_idx(isub)) ', EP.S);'];
     eval(evalstring);
 end
-    
-%par
-for isub = 1:length(who_idx)
-    
+
+% note, binica does not internally work multithreaded. Therefore, it makes
+% sense to parallelize this process across subjects. However, these things
+% are hard, if not impossible, to debug in a parfor-loop. Furthermore, the
+% new optica addons are not thoroughly tested to run in parallel. So
+% parallel processing is turned off by default. Turn it on, to improve
+% speed *a lot*, by uncommenting the 'parfor' and commenting the 'for' 
+% (+ the warning) in the next lines.
+% technical detail: As of Matlab 2019a, afaik there's no option to run in
+% parallel or serial based on a config switch. serializing the parfor via
+% setting the second argument to '0' is slower than a regular for-loop, and
+% hence not a solution.
+
+warning(sprintf(['You''re running ICA single-threaded. Consider\n',...
+    'activating multi-threaded ICA to speed up the process. See the\n',...
+    'comment above this warning in prep03 for more information..']));
+pause(7); % make sure, people are able to read this
+% parfor isub = 1:length(who_idx)
+for isub = 1:length(who_idx)    
     EEG = [];
     CFG = ALLCFG{isub};
     % --------------------------------------------------------------
