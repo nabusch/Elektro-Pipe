@@ -44,7 +44,7 @@ end
 
 if nargin < 2
     message = 'Have a nice day and enjoy Elektro-Pipe!';
-elseif ~(isa(message, 'MException') | ischar(message))
+elseif ~(isa(message, 'MException') | ischar(message) | isa(message, 'string'))
     warning('message must be a MException (try... catch ME) or a string.')
     return
 end

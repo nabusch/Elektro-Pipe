@@ -56,7 +56,7 @@ CFG.trial_omit  = [];
 % specified here. Currently this can result in problems with the
 % coregistration of behavioral data. So think about what you're doing!
 CFG.trig_omit_inv_mode = 'AND'; % 'AND' or 'OR'. Should trials that do not include all of these triggers (AND) or trials that do not include any of these triggers be removed?
-CFG.trig_omit_inv = [] ;
+CFG.trig_omit_inv = [];
 
 % Optional: If you are using the file-io in WM-utilities, you might want to
 % use ONLY triggers from the PC or ONLY triggers from the ViewPixx. To
@@ -97,7 +97,7 @@ CFG.trig_trial_onset = [];
 
 % Indices of channels that contain data, including external electrodes, 
 % but not bipolar channels like VEOG, HEOG.
-CFG.data_urchans = [1:64,69];%[1,3:15,17:50,52:63]; 
+CFG.data_urchans = [1:64,69]; %[1,3:15,17:50,52:63]; 
 
 % Indices of channels that contain data after rejecting the channels not
 % selected in CFG.data_urchans. 
@@ -220,7 +220,7 @@ CFG.eye_ica_useEP      = 0;
 % Coregistration is done by using the first instance of the first value and
 % the last instance of the second value. Everything inbetween is downsampled
 % and interpolated.
-CFG.eye_startEnd       = []; e.g., [10,20]
+CFG.eye_startEnd       = []; % e.g., [10,20]
 
 % After data has been coregistered, eyetracking data will be included in
 % the EEG struct. Do you want to keep the eyetracking-only files (ASCII &
