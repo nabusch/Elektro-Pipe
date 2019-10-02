@@ -12,6 +12,7 @@ who_idx = get_subjects(EP);
 
 
 %%
+autoclick = 'no'; % don't automatically click 'compute' in sasica
 for isub = 1:length(who_idx)
     
     % --------------------------------------------------------------
@@ -108,8 +109,24 @@ for isub = 1:length(who_idx)
     
     %% run SASICA on the remaining components to identify and mark EMG/EKG etc
     [EEG, com] = SASICA(EEG);
+    % try to get the handle of the 'compute' button and click it
+    % automatically
+    S = findall(0, 'name', 'Select ICA components');
+    OK = S.Children(strcmp(get(S.Children, 'tag'), 'push_ok'));
+    if strcmp(autoclick, 'yes')
+        OK.Callback(S,1);
+    end
     fprintf(2, 'Hit continue or F5 to proceed!\n')
     keyboard; % wait for user to fiddle around with SASICA
+  
+    % ask user if 'compute' button should be clicked automatically
+    if strcmp(autoclick, 'no')
+        autoclick = questdlg(['Would you like to apply the same SASICA ',...
+            'configuration to all subsequent files?'],...
+            'Click compute automatically?',...
+            'yes', 'no', 'don''t ask again', 'yes');
+    end
+    
     EEG = evalin('base','EEG'); % SASICA stores the results in base workspace via assignin. So we have to use this workaround...
     EEG = eegh(com, EEG);
     
@@ -135,8 +152,8 @@ for isub = 1:length(who_idx)
     EP.S.has_ICAclean(who_idx(isub)) = 1;
     writetable(EP.S, EP.st_file);
     
-    %close all old windows
-    close all;
+    %close SASICA window
+    close(S);
 end
 
 fprintf('Done.\n')
