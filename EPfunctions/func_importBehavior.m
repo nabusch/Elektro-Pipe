@@ -19,7 +19,16 @@ load([cfg.dir_behavior cfg.subject_name '_Logfile.mat']);
 % have scalar values.
 
 % Change these lines accordingly if your structure has a different name.
-Trials = Info.T;
+if isfield(cfg, 'trial_struct_name')
+	if isempty(cfg.trial_struct_name)
+		Trials = Info.T;
+	else
+		Trials = eval(cfg.trial_struct_name);
+	end
+else
+	Trials = Info.T;
+end
+
 fields = fieldnames(Trials);
 TrialsOut = [];
 
