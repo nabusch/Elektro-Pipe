@@ -30,11 +30,11 @@ end
 % setting the second argument to '0' is slower than a regular for-loop, and
 % hence not a solution.
 
-warning(sprintf(['You''re running ICA single-threaded. Consider\n',...
-    'activating multi-threaded ICA to speed up the process. See the\n',...
-    'comment above this warning in prep03 for more information..']));
-pause(7); % make sure, people are able to read this
-% parfor isub = 1:length(who_idx)
+%warning(sprintf(['You''re running ICA single-threaded. Consider\n',...
+%    'activating multi-threaded ICA to speed up the process. See the\n',...
+%    'comment above this warning in prep03 for more information..']));
+%pause(7); % make sure, people are able to read this
+%parfor isub = 1:length(who_idx)
 for isub = 1:length(who_idx)    
     EEG = [];
     CFG = ALLCFG{isub};
@@ -99,6 +99,11 @@ for isub = 1:length(who_idx)
         EEG = pop_overweightevents(EEG, types{sacdx},...
             [CFG.opticat_saccade_before, CFG.opticat_saccade_after],...
             CFG.opticat_ow_proportion, CFG.opticat_rm_epochmean);
+        % pop_overweightevents has an issue with the recent version of
+        % eeglab's pop_rmbase - edit overweightevents.m to use
+        % sac = pop_rmbase(sac,[], []);
+        % instead of sac = pop_rmbase(sac,[]);
+        
     end
     % --------------------------------------------------------------
     % Check how many components to extract and then run ICA. We need a
