@@ -136,7 +136,7 @@ for isub = 1:length(who_idx)
     if CFG.ignore_interp_chans
         UsedChans = setdiff(UsedChans,interp_chans);
     end
-    if strcmp(CFG.preproc_reference, 'robust')
+    if strcmp(CFG.preproc_reference, 'robust') & CFG.do_preproc_reref
         % exclude the artificial robust reference channel and those
         % channels detected as bad.
         UsedChans = setdiff(UsedChans,...
