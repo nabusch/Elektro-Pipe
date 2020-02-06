@@ -88,9 +88,10 @@ for isub = 1:length(who_idx)
         % make all latencies integers to avoid index warning in
         % geticavariance.m
         if all(arrayfun(@isscalar, [EEG.event.latency]))
-            tmp = cellfun(@int64, {EEG.event.latency}, 'UniformOutput', 0);
-            [EEG.event.latency] = tmp{:};
+           tmp = cellfun(@int64, {EEG.event.latency}, 'UniformOutput', 0);
+           [EEG.event.latency] = tmp{:};
         end
+        
         
         [EEG, vartable] = pop_eyetrackerica(EEG, types{sacdx},...
             types{fixdx}, [5 0], CFG.eyetracker_ica_varthresh, 2,...

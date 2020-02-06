@@ -26,6 +26,9 @@ end
 %% ------------------------------------------------------------------------
 % Data organization and content.
 % -------------------------------------------------------------------------
+% Name of the structure containing the behavioral data (e.g., "Info.T")
+CFG.trial_struct_name = "Info.T";
+
 % For GLM modelling with the unfold toolbox, you need continuous data.
 CFG.keep_continuous = false;
 
