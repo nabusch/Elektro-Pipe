@@ -267,8 +267,13 @@ CFG.ica_continuous = 0;
 % ('cont', default)? 
 CFG.ica_rm_continuous = 'epoch'; % if you want to do both, simply change this line and run prep04 again.
 
+% do you want to automatically reject components ased on correlation with
+% EOG? Currently not compatible with do_SASICA = true
+CFG.ica_reject_fully_automatic = true;
+CFG.ic_corr_bad = 0.65; %threshold for IC rejection
 
 %% Parameters for SASICA.
+CFG.do_SASICA       = false; %turn SASICA on or off
 CFG.sasica_heogchan = num2str(CFG.data_chans+1);
 CFG.sasica_veogchan = num2str(CFG.data_chans+2);
 CFG.sasica_autocorr = 20;

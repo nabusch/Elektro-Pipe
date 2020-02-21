@@ -10,7 +10,6 @@ EP.S = readtable(EP.st_file);
 
 who_idx = get_subjects(EP);
 
-
 %%
 autoclick = 'no'; % don't automatically click 'compute' in sasica
 for isub = 1:length(who_idx)
@@ -23,6 +22,15 @@ for isub = 1:length(who_idx)
     % struct.
     evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', EP.S);'];
     eval(evalstring);
+    
+    %% some defaults for backward compatibility
+    if ~isfield(CFG, 'do_SASICA')
+        CFG.do_SASICA = true;
+    end
+    
+    if ~isfield(CFG, 'ica_reject_fully_automatic')
+        CFG.ica_reject_fully_automatic = false;
+    end
     
     % Write a status message to the command line.
     fprintf('\nNow working on subject %s, (number %d of %d to process).\n\n', ...
@@ -109,31 +117,78 @@ for isub = 1:length(who_idx)
     end
     
     %% run SASICA on the remaining components to identify and mark EMG/EKG etc
-    [EEG, com] = SASICA(EEG);
-    % try to get the handle of the 'compute' button and click it
-    % automatically
-    S = findall(0, 'name', 'Select ICA components');
-    OK = S.Children(strcmp(get(S.Children, 'tag'), 'push_ok'));
-    if strcmp(autoclick, 'yes')
-        OK.Callback(S,1);
-    end
-    fprintf(2, 'Hit continue or F5 to proceed!\n')
-    keyboard; % wait for user to fiddle around with SASICA
-  
-    % ask user if 'compute' button should be clicked automatically
-    if strcmp(autoclick, 'no')
-        autoclick = questdlg(['Would you like to apply the same SASICA ',...
-            'configuration to all subsequent files?'],...
-            'Click compute automatically?',...
-            'yes', 'no', 'don''t ask again', 'yes');
+    if CFG.do_SASICA
+        if CFG.ica_reject_fully_automatic
+            error(['don''t know how to use SASICA and fully automatic ic'...
+                ' rejection. Please check your config and either change'...
+                ' ''do_SASICA'' or ''ica_reject_fully_automatic''']);
+        end
+        [EEG, com] = SASICA(EEG);
+        % try to get the handle of the 'compute' button and click it
+        % automatically
+        S = findall(0, 'name', 'Select ICA components');
+        OK = S.Children(strcmp(get(S.Children, 'tag'), 'push_ok'));
+        if strcmp(autoclick, 'yes')
+            OK.Callback(S,1);
+        end
+        fprintf(2, 'Hit continue or F5 to proceed!\n')
+        keyboard; % wait for user to fiddle around with SASICA
+        
+        % ask user if 'compute' button should be clicked automatically
+        if strcmp(autoclick, 'no')
+            autoclick = questdlg(['Would you like to apply the same SASICA ',...
+                'configuration to all subsequent files?'],...
+                'Click compute automatically?',...
+                'yes', 'no', 'don''t ask again', 'yes');
+        end
+        
+        EEG = evalin('base','EEG'); % SASICA stores the results in base workspace via assignin. So we have to use this workaround...
+        EEG = eegh(com, EEG);
+        
+        %% Subtract the components identified via SASICA
+        [EEG, com] = pop_subcomp(EEG, find(EEG.reject.gcompreject), 1);
+        EEG = eegh(com, EEG);
     end
     
-    EEG = evalin('base','EEG'); % SASICA stores the results in base workspace via assignin. So we have to use this workaround...
-    EEG = eegh(com, EEG);
+    %% alternatively, reject artifacts completely automatic
+    if CFG.ica_reject_fully_automatic
+        % Find bad ICs (those that correlate strongly with VEOG/HEOG) and
+        % remove them from the original data.
+        icact = EEG.icaact;
+        chans = [find(strcmp({EEG.chanlocs.labels}, 'VEOG')),...
+            find(strcmp({EEG.chanlocs.labels}, 'HEOG'))];
+        
+        
+        for ichan = 1:length(chans)
+            
+            eeg = EEG.data(chans(ichan),:,:);
+            eeg = reshape(eeg, [1, EEG.pnts * EEG.trials]);
+            
+            for icomp = 1:size(icact,1)
+                
+                ic = icact(icomp,:);
+                ic = reshape(ic,  [1, EEG.pnts * EEG.trials]);
+                
+                corr_tmp = corrcoef(ic, eeg);
+                corr_eeg_ic(icomp, ichan) = corr_tmp(1, 2);
+                
+            end
+            
+            bad_ic{ichan} = find(abs(corr_eeg_ic(:,ichan)) >= CFG.ic_corr_bad)';
+            bad_ic_cor{ichan} = corr_eeg_ic(bad_ic{ichan},ichan);
+        end
+        
+        fprintf('Found %d bad ICs.\n', length(unique([bad_ic{:}])))
+        for ichan = 1:length(chans)
+            for ibad = 1:length(bad_ic{ichan})
+                fprintf('EEG chan %d: IC %d. r = %2.2f.\n', ...
+                    chans(ichan), bad_ic{ichan}(ibad), bad_ic_cor{ichan}(ibad))
+            end
+        end
+        EEG = pop_subcomp(EEG, unique([bad_ic{:}]), 0);
+    end
     
-    %% Subtract the components identified via SASICA
-    [EEG, com] = pop_subcomp(EEG, find(EEG.reject.gcompreject), 1);
-    EEG = eegh(com, EEG);
+
     % --------------------------------------------------------------
     % Save data.
     % --------------------------------------------------------------
@@ -154,7 +209,9 @@ for isub = 1:length(who_idx)
     writetable(EP.S, EP.st_file);
     
     %close SASICA window
-    close(S);
+    if CFG.do_SASICA
+        close(S);
+    end
 end
 
 fprintf('Done.\n')
