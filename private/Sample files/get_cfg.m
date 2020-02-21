@@ -120,8 +120,10 @@ CFG.chanlocfile = 'Custom_M34_V3_Easycap_Layout_EEGlab.sfp';%standard-10-5-cap38
 % subsequent analyses.
 CFG.do_preproc_reref    = 1;
 CFG.preproc_reference   = []; % (31=Pz@Biosemi,32=Pz@CustomM43Easycap);  'robust' for robust average. Requires PREP extension & fix in line 102 of performReference.m (interpoled -> interpolated; already filed as issue on github)
-% usually, the preproc reference is kept
-CFG.postproc_reference  = []; % empty = average reference
+% Files produced with the prep_* functions always store data with the
+% preproc ref. The functions called by the design_master rereference to the
+% postproc_reference. Can be 'keep' to simply keep the preproc reference
+CFG.postproc_reference  = 'keep'; % empty = average reference
 
 % Do you want to have a new sampling rate?
 CFG.do_resampling     = 1;

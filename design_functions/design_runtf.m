@@ -156,8 +156,53 @@ for idesign = 1:length(EP.design_idx)
         %--------------------------------------------------------------
         Eyechans = find(strcmp('EYE',{EEG.chanlocs.type}));
         BipolarChans = find(ismember({EEG.chanlocs.labels},{'VEOG','HEOG'}));
-        EEG = pop_reref( EEG, CFG.postproc_reference, 'keepref','on','exclude',[BipolarChans, Eyechans]);
+        do_reref = true;
+        if ~isempty(CFG.postproc_reference)
+            if ischar(CFG.postproc_reference)
+                if strcmp(CFG.postproc_reference, 'keep')
+                    do_reref = false;
+                end
+            end
+        end
         
+        if do_reref
+            if strcmp(cfg.preproc_reference, 'robust')
+                %%settings for robust average reference
+                
+                % don't use channels as evaluation channels, of which we already
+                % know that they are bad.
+                if iscell(S.interp_chans)
+                    evalChans = find(~ismember(...
+                        {EEG.chanlocs(cfg.data_chans).labels},...
+                        strsplit(S.interp_chans{who_idx},',')));
+                else
+                    evalChans = CFG.data_chans;
+                end
+                
+                robustParams = struct('referenceChannels', evalChans,...
+                    'evaluationChannels', evalChans,...
+                    'rereference', cfg.data_chans,...
+                    'interpolationOrder', 'post-reference',...
+                    'correlationThreshold', 0.1e-99,...
+                    'ransacOff', true); %disable correlation threshold, as we don't want to detect half of the channels.
+                
+                % compute reference channel
+                [~,robustRef] = performReference(EEG, robustParams);
+                % add new robust reference channel to EEG
+                EEG.data(end+1,:) = robustRef.referenceSignal;
+                EEG.nbchan = size(EEG.data,1);
+                EEG.chanlocs(end+1).labels = 'RobustRef';
+                EEG.robustRef = robustRef;
+                % pass this new reference to eeglab's default rereferencing
+                % function. This is necessary, because PREP's performReference only
+                % outputs an EEG structure where all channels are interpolated.
+                [EEG, com] = pop_reref( EEG, 'RobustRef','keepref','on',...
+                    'exclude', CFG.data_chans(end) + 1:EEG.nbchan-1);
+            else
+                EEG = pop_reref( EEG, CFG.postproc_reference, 'keepref','on',...
+                    'exclude',[BipolarChans, Eyechans]);
+            end
+        end
         %--------------------------------------------------------------
         % Extract relevant trials for each condition.
         %--------------------------------------------------------------
