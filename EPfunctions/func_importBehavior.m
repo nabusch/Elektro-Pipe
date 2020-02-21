@@ -98,6 +98,7 @@ if length(EEG.epoch) ~= ntrials
 		fprintf(fid, w);
         fclose(fid);
     warning(w)
+    error(w)
 end
 
 
