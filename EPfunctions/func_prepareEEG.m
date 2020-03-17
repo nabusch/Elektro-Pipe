@@ -16,7 +16,7 @@ CONTEEG = struct();
 if isempty(S.replace_chans(who_idx)) || isnan(S.replace_chans(who_idx))
     fprintf('No channels to replace.\n');
 else
-    replace_chans = str2double(cell2mat(S.replace_chans(who_idx)));
+    replace_chans = str2num(cell2mat(S.replace_chans(who_idx)));
     for ichan = 1:size(replace_chans,1)
         bad_chan  = replace_chans(ichan, 1);
         good_chan = replace_chans(ichan, 2);
