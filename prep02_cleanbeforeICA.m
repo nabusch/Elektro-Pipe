@@ -122,6 +122,7 @@ for isub = 1:length(who_idx)
         fprintf('Interpolating channel(S): %s\n', str);
         EEG = eeg_interp(EEG, interp_chans);
         if CFG.keep_continuous
+            fprintf('Interpolating channel(S) for CONTEEG: %s\n', str);
             CONTEEG = eeg_interp(CONTEEG, interp_chans);
         end
     end
@@ -345,6 +346,7 @@ for isub = 1:length(who_idx)
     if CFG.keep_continuous
         % store behavioral coregistration in CONTEEG as well
         CONTEEG.EpochEvent = EEG.event;
+        disp('CONTEEG:')
         CONTEEG = pop_editset(CONTEEG, 'setname', [CFG.subject_name '_CleanBeforeICACONT.set']);
         CONTEEG = pop_saveset(CONTEEG, [CFG.subject_name '_CleanBeforeICACONT.set'] , CFG.dir_eeg);
     end
