@@ -75,8 +75,8 @@ CFG.badgaze_fieldname = '';
 
 % Do you want to check the latencies of specific triggers within each
 % epoch?
-CFG.checklatency=[];
-CFG.allowedlatency = 3;
+CFG.checklatency = [];
+CFG.allowedlatency = 5;
 
 % Do you want to delete trials that differ by more than CFG.allowedlatency ms
 % from the median latency AFTER coregistration with behavoral data?
@@ -106,7 +106,9 @@ CFG.data_urchans = [1:64,69]; %[1,3:15,17:50,52:63];
 % selected in CFG.data_urchans. 
 CFG.data_chans   = 1:length(CFG.data_urchans);
 
-% Use these channels for computing bipolar HEOG and VEOG channel.
+% Use these channels for computing bipolar HEOG and VEOG channel. (Indexes
+% refer to channels *after* rejecting unused channels as above. So deleting
+% channels 65:68 but keeping 69 makes 69 --> 65
 CFG.heog_chans = [2 51];
 CFG.veog_chans = [42 65];
 
@@ -184,7 +186,7 @@ CFG.rej_trend_minR     = 0; %0 = just slope criterion
 
 % Do you want to reject trials based on joint probability?
 CFG.do_rej_prob         = 1;
-CFG.rej_prob_locthresh  = 7;
+CFG.rej_prob_locthresh  = 8;
 CFG.rej_prob_globthresh = 4; 
 
 % Do you want to reject trials based on kurtosis?
@@ -203,24 +205,6 @@ CFG.ignore_interp_chans = 1;
 %% Eyelink related input
 % Do you want to coregister eyelink eyetracking data?
 CFG.coregister_Eyelink = 1; %0=don't coregister
-% Do you want to use Eyetracking data instead of HEOG & VEOG for ICA?
-% WARNING: currently this only suggests to use one of the EYE-channels in
-% SASICA. I suggest using EYE-ICA instead (see below)
-CFG.eye_ica            = 0;
-
-% Select occular ICs based on ET-data? requires EYE-ICA in a recent
-% (github, not plugin-manager) version, and EEGLab>v.14.1
-CFG.eyetracker_ica           = 1;
-CFG.eyetracker_ica_varthresh = 1.1; % variance ratio threshold
-CFG.eyetracker_ica_sactol    = [5 10]; % Extra temporal tolerance around saccade onset and offset
-CFG.eyetracker_ica_feedback  = 1; % do you want to see plots of (1) all selected bad components (2) all good (3) bad & good or (4) no plots?
-
-% Only if CFG.eye_ica is activated, you can opt to use an additional column
-% in Your EP-Excel sheet that is 1 for subjects where eyetracking data
-% should be used for ICA component selection and 0 for those where EOG
-% should be used instead. This makes sense, when Eyetracking data are very
-% noisy.
-CFG.eye_ica_useEP      = 0;
 
 % Coregistration is done by using the first instance of the first value and
 % the last instance of the second value. Everything inbetween is downsampled
@@ -237,7 +221,7 @@ CFG.eye_keepfiles      = [0 0];
 CFG.ica_type = 'binica';
 CFG.ica_extended = 1; % Run extended infomax ICA?
 CFG.ica_chans = CFG.data_chans; % Typicaly, ICA is computed on all channels, unless one channel is not really EEG.
-CFG.ica_ncomps = numel(CFG.data_chans)-3; % if ica_ncomps==0, determine data rank from the ...
+CFG.ica_ncomps = numel(CFG.data_chans) - 3; % if ica_ncomps==0, determine data rank from the ...
 % data (EEGLAB default). Otherwise, use a fixed number of components. Note: subject-specific
 % settings will override this parameter.
 
@@ -264,18 +248,38 @@ CFG.opticat_rm_epochmean = true; % subtract mean from overweighted epochs? (reco
 % the continuous data?
 CFG.ica_continuous = 0;
 
+%% ICA rejection/detection parameters
 % if CFG.keep_continuous and CFG.ica_continuous are true, do you want to
 % remove components from epoched data only ('epoch') or continuous data only 
 % ('cont', default)? 
 CFG.ica_rm_continuous = 'epoch'; % if you want to do both, simply change this line and run prep04 again.
 
-% do you want to automatically reject components ased on correlation with
-% EOG? Currently not compatible with do_SASICA = true
-CFG.ica_reject_fully_automatic = true;
-CFG.ic_corr_bad = 0.65; %threshold for IC rejection
+% Create a plot for manual inspection after running specified algorithms?
+CFG.ica_plot_ICs      = true; 
 
-%% Parameters for SASICA.
-CFG.do_SASICA       = false; %turn SASICA on or off
+% Select occular ICs based on eyetrack-data? requires EYE-ICA
+% (incompatible with resampling! - see help eyetrackerica)
+CFG.do_eyetrack_ica          = true;
+CFG.eyetracker_ica_varthresh = 1.3; % variance ratio threshold
+CFG.eyetracker_ica_sactol    = [5 10]; % Extra temporal tolerance around saccade onset and offset
+CFG.eyetracker_ica_feedback  = 4; % do you want to see plots of (1) all selected bad components (2) all good (3) bad & good or (4) no plots?
+
+% select components based on IClabel classifier?
+CFG.do_iclabel_ica = true;
+% what types of ICs do you want to remove? Options are:
+% 'Brain', 'Muscle', 'Eye', 'Heart', 'Line Noise', 'Channel Noise', 'Other'
+CFG.iclabel_rm_ICtypes = {'Eye', 'Heart', 'Line Noise', 'Channel Noise', 'Muscle'};
+% minimum classification accuracy to believe an ICs assigned label is true.
+% Can be a vector with one accuracy per category or a single value for all
+% categories.
+CFG.iclabel_min_acc = .7;
+
+% select components based on correlation with EOG? 
+CFG.do_corr_ica = false;
+CFG.ic_corr_bad = 0.65; %threshold for IC rejection (uses absolute values)
+
+% select components with SASICA?
+CFG.do_SASICA       = true;
 CFG.sasica_heogchan = num2str(CFG.data_chans+1);
 CFG.sasica_veogchan = num2str(CFG.data_chans+2);
 CFG.sasica_autocorr = 20;
@@ -323,4 +327,8 @@ CFG.fft_verbose = 'on'; % if not specified: overwritten by EP.verbose
 %% FFT single-trial analysis
 CFG.single.fft_chans = [];%[13:32, 56:64]; %cell with characters or vector with indeces
 CFG.single.fft_time  = [];%[1, 3];
+
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%Assertion checks for incompatible configurations
+assert(~(CFG.do_eyetrack_ica & CFG.do_resampling));
 end

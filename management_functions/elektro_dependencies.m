@@ -40,6 +40,19 @@ if ~compare_semantics(installed, desired, '>=')
     msg = mkmsg('eye_eeg', desired, msg);
 end
 
+% iclabel >= 1.25 (below might work but not tested)
+installed = getver('eegplugin_iclabel.m');
+desired = '1.2.5';
+if ~compare_semantics(installed, desired, '>=')
+    msg = mkmsg('iclabel', desired, msg);
+end
+
+% ViewProps >= 1.5.4 (below might work but not tested)
+installed = getver('eegplugin_viewprops.m');
+desired = '1.5.4';
+if ~compare_semantics(installed, desired, '>=')
+    msg = mkmsg('viewprops', desired, msg);
+end
 
 if ~isempty(msg)
     error(msg);
