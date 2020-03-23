@@ -320,7 +320,7 @@ function [EEG, P] = detect_SASICA_ICs(EEG, CFG, P)
 if CFG.do_SASICA
     assert((CFG.do_SASICA & ~CFG.do_corr_ica & ~CFG.do_iclabel_ica &...
         ~CFG.do_eyetrack_ica), ['Currently, Elektro-Pipe can''t combine'...
-        'SASICA with other IC detection methods.']);
+        ' SASICA with other IC detection methods.']);
     [EEG, com] = SASICA(EEG);
     % try to get the handle of the 'compute' button and click it
     % automatically
