@@ -57,6 +57,7 @@ P.autoclick = 'no'; % don't automatically click 'compute' in sasica
 
 %% loop over files, select and reject components in the configured ways
 for isub = 1:length(who_idx)
+    
     %% 02B: process File-specific input arguments, set defaults
     [CFG, P] = process_input_set_defaults(P, isub, who_idx, EP);
     
@@ -105,6 +106,7 @@ for isub = 1:length(who_idx)
     
     %% 10: update subjects table
     %add info to table
+    EP.S = readtable(EP.st_file);
     EP.S.has_ICAclean(who_idx(isub)) = 1;
     writetable(EP.S, EP.st_file);
     
