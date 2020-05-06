@@ -1,5 +1,5 @@
 function [chanstr, channum, chanlog] = elektro_chanlabeltransformer(channels, chanlocs)
-% FUNC_CHANLABELTRANSFORMER takes a vector of string channel labels or
+% ELEKTRO_CHANLABELTRANSFORMER takes a vector of string channel labels or
 % numeric channel indices and returns both.
 %
 % INPUT:
