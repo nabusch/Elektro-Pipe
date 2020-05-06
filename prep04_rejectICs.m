@@ -90,7 +90,7 @@ for isub = 1:length(who_idx)
     end
     
     %% 09: reconstruct signal without ICs and store output
-    EEG = pop_subcomp(EEG, [], 1);
+    EEG = pop_subcomp(EEG, [], CFG.ica_ask_for_confirmation);
     
     if CFG.keep_continuous && strcmp(CFG.ica_rm_continuous, 'cont')
         EEG = pop_editset(EEG, 'setname', [CFG.subject_name,...
@@ -140,6 +140,11 @@ if isfield(CFG, 'eye_ica')
     error(['Your config has a field ''eye_ica''.'...
         ' This value is deprecated. Run ''help prep04_rejectICs'''...
         'for more information.']);
+end
+
+% asking for confirmation used to be the default
+if ~isfield(CFG, 'ica_ask_for_confirmation')
+    CFG.ica_ask_for_confirmation = true;
 end
 
 % throw mild warnings for values that changed names to be consistent

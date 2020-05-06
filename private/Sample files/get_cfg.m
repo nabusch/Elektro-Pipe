@@ -257,6 +257,9 @@ CFG.ica_rm_continuous = 'epoch'; % if you want to do both, simply change this li
 % Create a plot for manual inspection after running specified algorithms?
 CFG.ica_plot_ICs      = true; 
 
+% Ask for confirmation to remove ICs?
+CFG.ica_ask_for_confirmation = false;
+
 % Select occular ICs based on eyetrack-data? requires EYE-ICA
 % (incompatible with resampling! - see help eyetrackerica)
 CFG.do_eyetrack_ica          = true;
