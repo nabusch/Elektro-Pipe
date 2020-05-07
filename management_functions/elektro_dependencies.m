@@ -54,6 +54,21 @@ if ~compare_semantics(installed, desired, '>=')
     msg = mkmsg('viewprops', desired, msg);
 end
 
+% erplab for plots in func_prepareEEG
+installed = getver('erplab_default_values.m');
+desired = '7.0';
+if ~compare_semantics(installed, desired, '>=')
+    msg = mkmsg('viewprops', desired, msg);
+end
+
+% PREP pipe for new cleanline and robust reference
+installed = regexprep(getPrepVersion, 'PrepPipeline', '');
+desired = '0.55.3';
+if ~compare_semantics(installed, desired, '>=')
+    msg = mkmsg('PREP', desired, msg);
+end
+
+
 if ~isempty(msg)
     error(msg);
 end
@@ -67,7 +82,7 @@ end
 
 function ver = getver(funname)
 ver = cell2mat(regexp(regexp(fileread(funname),...
-    "vers = '\w*[\.\d]*'", 'match'), '[\d\.]*', 'match', 'once'));
+    "ver\w* = '\w*[\.\d]*'", 'match'), '[\d\.]*', 'match', 'once'));
 end
 
 function [major, minor, patchlevel] = parse_semantic(ver)

@@ -144,7 +144,7 @@ if cfg.do_preproc_reref
     %robust average (requires PREP extension)
     if strcmp(cfg.preproc_reference, 'robust')
         %%settings for robust average reference
-        
+        fprintf('\n\nfunc_prepareEEG: computing robust reference...\n');
         % don't use channels as evaluation channels, of which we already
         % know that they are bad.
         if iscell(S.interp_chans)
@@ -392,7 +392,7 @@ if ~isempty(cfg.checklatency)
     fid = fopen([cfg.dir_eeg,filesep,'badlatency.txt'],'a');
     fprintf(fid,num2str(length(EEG.latencyBasedRejection)));
     fclose(fid);
-    set(0,'DefaultFigureVisible','on');
+    set(0,'DefaultFigureVisible','off');
     
     % in case we're using the unfold-pipe, deleting epochs is useless. But
     % we want to keep the latencies of those trials, to later interpolate
@@ -470,31 +470,36 @@ end
 % Remove 50Hz line noise using Tim Mullen's cleanline.
 % --------------------------------------------------------------
 if cfg.do_cleanline
-    if ~cfg.keep_continuous
+    disp('Running cleanline algorithm for segmented data (PREP version)...');
+    % FFT before cleanline
+    % select 2 random channels for visualization
+    randchs = randsample(cfg.data_chans, 2);
+    pop_fourieeg(EEG, randchs, [], 'EndFrequency', 100);
+    winlength = EEG.pnts / EEG.srate;
+    lineNoiseIn = struct('lineNoiseMethod', 'clean', ...
+        'lineNoiseChannels', cfg.data_chans,...
+        'Fs', EEG.srate, ...
+        'lineFrequencies', [50, 100],...
+        'p', 0.01, ...
+        'fScanBandWidth', 2, ...
+        'taperBandWidth', 2, ...
+        'taperWindowSize', winlength, ...
+        'taperWindowStep', winlength, ...
+        'tau', 100, ...
+        'pad', 2, ...
+        'fPassBand', [0 EEG.srate/2], ...
+        'maximumIterations', 10);
+    [EEG, ~] = cleanLineNoise(EEG, lineNoiseIn);
+    EEG = eegh(com, EEG);
+    % FFT after cleanline
+    pop_fourieeg(EEG, randchs, [], 'EndFrequency', 100);
+    %         cleanline_qualityplot(EEG);
+    disp('cleanline done.')
+    
+    if cfg.keep_continuous
+        disp('Running cleanline algorithm for continuous data (PREP version)...');
         % FFT before cleanline
-        [amps,  EEG.cleanline.freqs] = my_fft(EEG.data, 2, EEG.srate, EEG.pnts);
-        EEG.cleanline.pow = mean(amps.^2, 3);
-        
-        winlength = EEG.pnts / EEG.srate;
-        [EEG, com] = pop_cleanline(EEG, ...
-            'bandwidth', 2, 'chanlist', 1:EEG.nbchan, ...
-            'computepower', 0, 'linefreqs', [50 100], ...
-            'normSpectrum', 0, 'p', 0.01, ...
-            'pad',2, 'plotfigures', 0, ...
-            'scanforlines', 1, 'sigtype', 'Channels', ...
-            'tau', 100, 'verb', 1, ...
-            'winsize', winlength, 'winstep',winlength);
-        EEG = eegh(com, EEG);
-        
-        % FFT after cleanline
-        [ampsc, EEG.cleanline.freqsc] = my_fft(EEG.data, 2, EEG.srate, EEG.pnts);
-        EEG.cleanline.powc = mean(ampsc.^2, 3);
-        % Create figure in background
-        cleanline_qualityplot(EEG);
-    else
-        % FFT before cleanline
-        [amps,  CONTEEG.cleanline.freqs] = my_fft(CONTEEG.data, 2, CONTEEG.srate, CONTEEG.pnts);
-        CONTEEG.cleanline.pow = mean(amps.^2, 3);
+        pop_fourieeg(CONTEEG, randchs, [], 'EndFrequency', 100);
         
         %find winlength that takes into account all data points and is
         %between 3 and 4 seconds (cleanline recommendation). If that's not
@@ -514,25 +519,18 @@ if cfg.do_cleanline
         %it's possible that we catch multiple possible values. In that case
         %simply use the first.
         W = find(W, 1);
-        winlength = CONTEEG.pnts / D(W);
-        
-        [CONTEEG, com] = pop_cleanline(CONTEEG, ...
-            'bandwidth', 2, 'chanlist', 1:CONTEEG.nbchan, ...
-            'computepower', 0, 'linefreqs', [50 100], ...
-            'normSpectrum', 0, 'p', 0.01, ...
-            'pad',2, 'plotfigures', 0, ...
-            'scanforlines', 1, 'sigtype', 'Channels', ...
-            'tau', 100, 'verb', 1, ...
-            'SlidingWinLength', winlength/1000, 'winstep', winlength/1000);
+        winlength = (CONTEEG.pnts / D(W)) / 1000;
+        lineNoiseIn.taperWindowSize = winlength;
+        lineNoiseIn.taperWindowStep = winlength;
+        [CONTEEG, ~] = cleanLineNoise(CONTEEG, lineNoiseIn);
         CONTEEG = eegh(com, CONTEEG);
         
         % FFT after cleanline
-        [ampsc, CONTEEG.cleanline.freqsc] = my_fft(CONTEEG.data, 2, CONTEEG.srate, CONTEEG.pnts);
-        CONTEEG.cleanline.powc = mean(ampsc.^2, 3);
-        % Create figure in background
-        cleanline_qualityplot(CONTEEG);
-    end  
+        pop_fourieeg(CONTEEG, randchs, [], 'EndFrequency', 100);
+        disp('cleanline done.')
+    end
 end
+set(0, 'DefaultFigureVisible', 'on');
 
 % --------------------------------------------------------------
 % Detrend the data.
