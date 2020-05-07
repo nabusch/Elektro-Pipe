@@ -474,6 +474,7 @@ if cfg.do_cleanline
     % FFT before cleanline
     % select 2 random channels for visualization
     randchs = randsample(cfg.data_chans, 2);
+    set(0,'DefaultFigureVisible','off');
     pop_fourieeg(EEG, randchs, [], 'EndFrequency', 100);
     winlength = EEG.pnts / EEG.srate;
     lineNoiseIn = struct('lineNoiseMethod', 'clean', ...
