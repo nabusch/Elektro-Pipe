@@ -284,23 +284,25 @@ for isub = 1:length(who_idx)
         global eegrej
         
         %show a popup with artifact legend
-        figure;
-        k=0;
-        fnames = fieldnames(plotRej);
-        for i = 1:length(fnames)
-            fn = fnames(i);
-            if ~isempty(plotRej.(fn{:}))
-                k=k+1;
-                plot([1,2],[k,k],'Color',...
-                    plotRej.(fn{:})(1,3:5),'LineWidth',3);
-                text(2.2,k,k,fn{:});
-                if k==1
-                    hold on;
+        if ~all(structfun(@isempty, plotRej))
+            figure;
+            k=0;
+            fnames = fieldnames(plotRej);
+            for i = 1:length(fnames)
+                fn = fnames(i);
+                if ~isempty(plotRej.(fn{:}))
+                    k=k+1;
+                    plot([1,2],[k,k],'Color',...
+                        plotRej.(fn{:})(1,3:5),'LineWidth',3);
+                    text(2.2,k,k,fn{:});
+                    if k==1
+                        hold on;
+                    end
                 end
             end
+            axis([0.5,4,0.5,k+0.5]);
+            axis off; hold off;
         end
-        axis([0.5,4,0.5,k+0.5]);
-        axis off; hold off;
         
         %plot data
         % set default to 1 for backward compatibility
@@ -323,19 +325,22 @@ for isub = 1:length(who_idx)
         keyboard
         
         % eegplot2trial cannot deal with multi-rejection
-        rejTime = eegrej(:,1:2);
-        [~,firstOccurences,~] = unique(rejTime,'rows');
-        eegrej = eegrej(firstOccurences,:);
-        
-        [badtrls, badChnXtrl] = eegplot2trial(eegrej,EEG.pnts,length(EEG.epoch));
-        trials_to_delete = find(badtrls);
+        if ~isempty(eegrej)
+            rejTime = eegrej(:,1:2);
+            [~,firstOccurences,~] = unique(rejTime,'rows');
+            eegrej = eegrej(firstOccurences,:);
+            
+            [badtrls, badChnXtrl] = eegplot2trial(eegrej,EEG.pnts,length(EEG.epoch));
+            trials_to_delete = find(badtrls);
+
+            % ---------------------------------------------------------------------
+            %  Execute interpolation and rejection
+            % ---------------------------------------------------------------------
+            EEG = pop_selectiveinterp(EEG,badChnXtrl);
+            [EEG, com] = pop_rejepoch(EEG, trials_to_delete, 1);
+            EEG = eegh(com,EEG);
+        end
         clear eegrej;
-        % ---------------------------------------------------------------------
-        %  Execute interpolation and rejection
-        % ---------------------------------------------------------------------
-        EEG = pop_selectiveinterp(EEG,badChnXtrl);
-        [EEG, com] = pop_rejepoch(EEG, trials_to_delete, 1);
-        EEG = eegh(com,EEG);
     end
     
     %% --------------------------------------------------------------------
