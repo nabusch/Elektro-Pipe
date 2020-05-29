@@ -107,7 +107,7 @@ for idesign = 1:length(EP.design_idx)
         end
         
         if do_reref
-            if strcmp(cfg.preproc_reference, 'robust')
+            if strcmp(cfg.postproc_reference, 'robust')
                 %%settings for robust average reference
                 
                 % don't use channels as evaluation channels, of which we already
