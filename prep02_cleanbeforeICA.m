@@ -49,12 +49,6 @@ for isub = 1:length(who_idx)
     % the end
     nUrTrials = size(EEG.data, 3);
     
-    %% ---------------------------------------------------------------------
-    % If EP file specifies channels for interpolation for this subject,
-    % interpolate them now.
-    % ---------------------------------------------------------------------
-[EEG] = elektro_channelinterpolater(EEG, CFG, isub, EP, who_idx);
-    
     %% --------------------------------------------------------------------
     % Run multiple algorithms to get a good selection of artifacts
     % ---------------------------------------------------------------------

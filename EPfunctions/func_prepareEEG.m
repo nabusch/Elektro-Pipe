@@ -37,6 +37,16 @@ EEG = elektro_replacechans(EEG, EP, id_idx);
 EEG = elektro_layoutprep(EEG, cfg);
 
 % --------------------------------------------------------------
+% Use the fully automatic clean rawdata algorithm
+% --------------------------------------------------------------
+EEG = elektro_cleanrawdata(EEG, cfg);
+
+% --------------------------------------------------------------
+% Interpolate bad channels
+% --------------------------------------------------------------
+EEG = elektro_channelinterpolater(EEG, cfg, EP, id_idx);
+
+% --------------------------------------------------------------
 % Filter the data.
 % --------------------------------------------------------------
 EEG = elektro_prepfilter(EEG, cfg);
@@ -52,7 +62,7 @@ end
 % --------------------------------------------------------------
 % Apply reference
 % --------------------------------------------------------------
-EEG = elektro_preprocref(EEG, cfg, EP);
+EEG = elektro_preprocref(EEG, cfg, EP, id_idx);
 
 %---------------------------------------------------------------
 % Remove all events from non-configured trigger devices
@@ -67,11 +77,6 @@ end
 % Import Eyetracking data.
 % --------------------------------------------------------------
 EEG = elektro_importEye(EEG, cfg);
-
-% --------------------------------------------------------------
-% Interpolate bad channels
-% --------------------------------------------------------------
-EEG = elektro_channelinterpolater(EEG, cfg, EP, id_idx);
 
 % --------------------------------------------------------------
 % Epoch the data.

@@ -155,6 +155,8 @@ CFG.do_cleanline = 1;
 CFG.do_detrend = 0;
 
 %% Bad channel detection parameters
+% NOTE: This set of settings is incompatible with the rej_cleanrawdata
+% option below (as that will already take care of interpolation).
 % do you want to interpolate bad channels? (happens before ICA)
 CFG.do_interp = 1;
 
@@ -172,8 +174,14 @@ CFG.interp_plot = true;
 CFG.ignore_interp_chans = 1;
 
 %% Artifact detection parameters
+% NOTE: EEGlab now ships with the fully automagic clean rawdata plugin as 
+% the default artifact removal method. You can opt to use this method. As 
+% it cleans the *raw*data, this obviously needs to happen in prep01, as 
+% opposed to all other cleaning methods.
+CFG.rej_cleanrawdata = 0;
+CFG.rej_cleanrawdata_args = {}; %varargin passed to clean_artifacts(), "tuning should be the exception"
 % set all the CFG.do_rej_* to 0 to deactivate automatic artifact
-% detection/rejection.
+% detection/rejection in prep02.
 
 % In case you use automatic artifact detection, do you want to
 % automatically delete detected trials or inspect them after deletion?
@@ -339,4 +347,5 @@ CFG.single.fft_time  = [];%[1, 3];
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%Assertion checks for incompatible configurations
 assert(~(CFG.do_eyetrack_ica & CFG.do_resampling));
+assert(~(CFG.rej_cleanrawdata & CFG.do_interp));
 end

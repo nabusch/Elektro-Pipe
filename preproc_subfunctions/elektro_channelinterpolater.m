@@ -1,6 +1,10 @@
 function [EEG] = elektro_channelinterpolater(EEG, cfg, EP, id_idx)
 % wm: THIS FUNCTION STILL NEEDS A PROPER DOCUMENTATION!
-
+%
+% note: the functions used for detection are part of clean_rawdata. As
+% such, they're supposed to work on rawdata. In fact, running them on
+% re-referenced data provides very different results.
+%
 % (c) Niko Busch & Wanja Mössing
 % (contact: niko.busch@gmail.com, w.a.moessing@gmail.com)
 %
@@ -17,9 +21,7 @@ function [EEG] = elektro_channelinterpolater(EEG, cfg, EP, id_idx)
 %  You should have received a copy of the GNU General Public License
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-if ~cfg.do_interp
-    return
-end
+
 
 %% set defaults
 if ~isfield(cfg, 'interp_these')
@@ -33,6 +35,11 @@ end
 %% first check if we already know about some noisy channels from the recording protocol
 spread = check_spread(EEG, EP, id_idx, cfg);
 
+%% Abort if interpolation turned off
+if ~cfg.do_interp
+    return
+end
+
 %% now check for flat and/or noisy channels
 if any(ismember(cfg.interp_these, {'flat', 'noisy'}))
     disp('temporarily removing the non-scalp channels for bad channel detection');
@@ -40,7 +47,7 @@ if any(ismember(cfg.interp_these, {'flat', 'noisy'}))
 end
 
 flat = check_flat(scalpEEG, cfg);
-[noise, scalpEEG] = check_noise(scalpEEG, cfg);
+[noise, ~] = check_noise(scalpEEG, cfg);
 
 %% if configured, plot the data and highlight the detected bad channels
 if cfg.interp_plot
@@ -53,15 +60,17 @@ if cfg.interp_plot
     colors(1, spread & flat) = {[0 1 1]};
     legend_as_title = ['red = noise, green = flat, blue = spread, ',...
         'pink = spread & noise, turquoise = spread & flat'];
+    scalpEEG = pop_reref(scalpEEG, []);
     pop_eegplot(scalpEEG, 1, 1, 0, '', 'color', colors, 'winlength', 30,...
         'title', legend_as_title);
+    uiwait(findobj('name', legend_as_title));
     list = {scalpEEG.chanlocs.labels};
     [selection, okayed] = listdlg('ListString', list,...
         'InitialValue', find(spread | noise | flat),...
         'Name', 'Select channels to interpolate', 'OKString',...
         'Interpolate', 'PromptString',...
         {'Please (un-)select the', 'to-be-interpolated', 'channels'});
-    close(findobj('name', legend_as_title));
+%     close(findobj('name', legend_as_title));
     if ~okayed
         error('user cancelled');
     else
@@ -90,7 +99,7 @@ end
 end
 
 %% subfunctions
-function [spread] = check_spread(EEG, EP, id_idx, cfg)
+function [spread, EEG] = check_spread(EEG, EP, id_idx, cfg)
 spread = false(length(EEG.chanlocs), 1);
 if ismember('interp_chans', EP.S.Properties.VariableNames) &&...
         ismember('spread', cfg.interp_these)
@@ -99,6 +108,7 @@ if ismember('interp_chans', EP.S.Properties.VariableNames) &&...
     spread(spread_idx) = true;
 end
 spread = spread(cfg.data_chans);
+EEG.etc.elektro.spreadsheet_interp_chans = {EEG.chanlocs(spread_idx).labels};
 end
 
 function [flat] = check_flat(EEG, cfg)

@@ -148,6 +148,12 @@ for isub = 1:length(who_idx)
                     'for rank deficiency due to interpolation.\n'], n_less);
                 CFG.ica_ncomps = CFG.ica_ncomps - n_less;
             end
+            if isfield(EEG.etc.elektro, 'cleanrawdata')
+                n_less = numel(EEG.etc.elektro.cleanrawdata.interp_chans);
+                fprintf(['reducing the number of components by %i to account '...
+                    'for rank deficiency due to interpolation.\n'], n_less);
+                CFG.ica_ncomps = CFG.ica_ncomps - n_less;
+            end
         end
         
         [EEG, com] = pop_runica(EEG, 'icatype', CFG.ica_type, ...

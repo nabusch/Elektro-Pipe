@@ -1,4 +1,4 @@
-function [EEG] = elektro_preprocref(EEG, cfg, EP)
+function [EEG] = elektro_preprocref(EEG, cfg, EP, id_idx)
 %
 % wm: THIS FUNCTION STILL NEEDS A PROPER DOCUMENTATION!
 
@@ -29,7 +29,7 @@ if cfg.do_preproc_reref
         if iscell(EP.S.interp_chans)
             evalChans = find(~ismember(...
                 {EEG.chanlocs(cfg.data_chans).labels},...
-                strsplit(EP.S.interp_chans{who_idx},',')));
+                strsplit(EP.S.interp_chans{id_idx},',')));
         else
             evalChans = cfg.data_chans;
         end
