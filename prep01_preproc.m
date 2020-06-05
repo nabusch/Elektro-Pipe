@@ -1,48 +1,47 @@
 function [] = prep01_preproc(EP)
+%
+% wm: THIS FUNCTION STILL NEEDS A PROPER DOCUMENTATION!
 
-% Written by Niko Busch - WWU Muenster (niko.busch@gmail.com)
+% (c) Niko Busch & Wanja Mössing (contact: niko.busch@gmail.com)
+%
+%  This program is free software: you can redistribute it and/or modify
+%  it under the terms of the GNU General Public License as published by
+%  the Free Software Foundation, either version 3 of the License, or
+%  (at your option) any later version.
+%
+%  This program is distributed in the hope that it will be useful,
+%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  GNU General Public License for more details.
+%
+%  You should have received a copy of the GNU General Public License
+%  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+%% Check dependencies
+elektro_dependencies();
 
-% Check dependencies
-elektro_dependencies()
-
-
+%% get environment variables
 [cfg_dir, cfg_name, ~] = fileparts(EP.cfg_file);
-[sub_dir, sub_name, ~] = fileparts(EP.cfg_file);
-
-addpath(sub_dir);
 addpath(cfg_dir);
-
-S = readtable(EP.st_file);
-EP.S = S;
+EP.S = readtable(EP.st_file);
 who_idx = get_subjects(EP);
 
-%load CFG files. This need to happen outside parfor because of eval.
-ALLCFG = cell(1,length(who_idx));
-for isub = 1:length(who_idx)
-    % Load CFG file. I know, eval is evil, but this way we allow the user
-    % to give the CFG function any arbitrary name, as defined in the EP
-    % struct.
-    evalstring = ['ALLCFG{',num2str(isub),'} = ' cfg_name '(' num2str(who_idx(isub)) ', S);'];
-    eval(evalstring);
-end
+%% load CFG files. This needs to happen outside parfor because of eval.
+cfg_fun = str2func(cfg_name);
+ALLCFG = arrayfun(@(x) cfg_fun(x, EP.S), who_idx, 'uni', 0);
 
-%run in parallel over subjects. Note that this disables direct output of
-%the EEG struct to the caller.
-%parfor (isub = 1:length(who_idx), EP.prep_parallel)
-for isub = 1:length(who_idx)    
-    EEG = [];
+%% loop over subjects and run various preparation steps
+for isub = 1:length(who_idx)
     
+    % get this subjects config
     CFG = ALLCFG{isub};
+    
     % Write a status message to the command line.
     fprintf('\nNow importing subject %s, (number %d of %d to process).\n\n', ...
         CFG.subject_name, isub, length(who_idx));
     
     % Create output directory if necessary.
-    if ~isdir(CFG.dir_eeg)
-        mkdir(CFG.dir_eeg);
-    end
-    
+    [~, ~] = mkdir(CFG.dir_eeg);
     
     % --------------------------------------------------------------
     % Import Biosemi raw data.
@@ -59,61 +58,64 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Preprocessing (filtering etc.).
     % --------------------------------------------------------------
-    [EEG, CONTEEG] = func_prepareEEG(EEG, CFG, S, who_idx(isub));
+    [EEG, CONTEEG] = func_prepareEEG(EEG, CFG, EP, who_idx(isub));
     
     
     % --------------------------------------------------------------
     % Import behavioral data .
     % --------------------------------------------------------------
-    EEG = func_importBehavior(EEG, CFG);
-    if CFG.keep_continuous
-        CONTEEG.prep01epoch = EEG.epoch;
-        CONTEEG.contevent = CONTEEG.event;
-        CONTEEG.event = EEG.event;
-        CONTEEG.trialinfo = EEG.trialinfo;
-    end
+    [EEG, CONTEEG] = func_importBehavior(EEG, CFG, CONTEEG);
     
     % --------------------------------------------------------------
     % Create quality plots
     % --------------------------------------------------------------
-    fprintf('Creating a postscript file with plots of Cleanline and/or Eyelink-coregistration quality...\n');
-    if exist([CFG.dir_eeg CFG.subject_name '_QualityPlots' '.ps'],'file')
-        fprintf('Found an old version of ''%s''. Will overwrite it now.\n',[CFG.subject_name '_QualityPlots' '.ps']);
-        delete([CFG.dir_eeg CFG.subject_name '_QualityPlots' '.ps']);
-    end
-    h = get(0,'children');
-    for i=1:length(h)
-        h(i).PaperOrientation = 'landscape';
-        h(i).PaperType = 'A3';
-        print(h(i), [CFG.dir_eeg CFG.subject_name '_QualityPlots'], '-dpsc','-append','-fillpage');
-    end
-    close all;
+    print_quality_plots(CFG)
     
     % --------------------------------------------------------------
     % Save data.
     % --------------------------------------------------------------
-    if CFG.keep_continuous
+    % Convert back to single precision.
+    if cfg.keep_continuous
+        CONTEEG.data = single(CONTEEG.data);
         [CONTEEG, com] = pop_editset(CONTEEG, 'setname', [CFG.subject_name ' importCONT']);
         CONTEEG = eegh(com, CONTEEG);
         pop_saveset( CONTEEG, [CFG.subject_name  '_importCONT.set'] , CFG.dir_eeg);
     end
+    EEG.data = single(EEG.data);
     [EEG, com] = pop_editset(EEG, 'setname', [CFG.subject_name ' import']);
     EEG = eegh(com, EEG);
-    pop_saveset( EEG, [CFG.subject_name  '_import.set'] , CFG.dir_eeg);
+    pop_saveset(EEG, [CFG.subject_name  '_import.set'] , CFG.dir_eeg);
+    
+    % --------------------------------------------------------------
+    % write info to spreadsheet
+    % --------------------------------------------------------------
+    fid = fopen([CFG.dir_eeg, 'badlatency.txt']);
+    val = fscanf(fid, '%i');
+    fclose(fid);
+    delete([CFG.dir_eeg, 'badlatency.txt']);
+    EP.S.N_BadLatencyRejections(who_idx(isub)) = val;
+    EP.S.has_import(who_idx(isub)) = 1;
+    writetable(EP.S, EP.st_file);
 end
-
-%write information to progress excel file
-if ALLCFG{end}.deletebadlatency
-    for isub = 1:length(who_idx)
-        CFG = ALLCFG{isub};
-        fid = fopen([CFG.dir_eeg, 'badlatency.txt']);
-        val = fscanf(fid, '%i');
-        fclose(fid);
-        delete([CFG.dir_eeg, 'badlatency.txt']);
-        S.N_BadLatencyRejections(who_idx(isub)) = val;
-    end
-end
-S.has_import(who_idx) = 1;
-writetable(S, EP.st_file)
 
 fprintf('Done.\n')
+end
+
+%% subfunction
+function [] = print_quality_plots(CFG)
+disp(['Creating a postscript file with plots of Cleanline and/or ',...
+    'Eyelink-coregistration quality...']);
+if exist([CFG.dir_eeg CFG.subject_name '_QualityPlots' '.ps'],'file')
+    fprintf('Found an old version of ''%s''. Will overwrite it now.\n',...
+        [CFG.subject_name '_QualityPlots' '.ps']);
+    delete([CFG.dir_eeg CFG.subject_name '_QualityPlots' '.ps']);
+end
+
+h = get(0,'children');
+for i=1:length(h)
+    h(i).PaperOrientation = 'landscape';
+    h(i).PaperType = 'A3';
+    print(h(i), [CFG.dir_eeg CFG.subject_name '_QualityPlots'], '-dpsc','-append','-fillpage');
+end
+close all;
+end

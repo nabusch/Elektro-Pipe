@@ -1,17 +1,35 @@
-function EEG = func_importBehavior(EEG, cfg)
+function [EEG, CONTEEG] = func_importBehavior(EEG, cfg, CONTEEG)
+%
+% wm: THIS FUNCTION STILL NEEDS A PROPER DOCUMENTATION!
+
+% (c) Niko Busch & Wanja Mössing
+% (contact: niko.busch@gmail.com, w.a.moessing@gmail.com)
+%
+%  This program is free software: you can redistribute it and/or modify
+%  it under the terms of the GNU General Public License as published by
+%  the Free Software Foundation, either version 3 of the License, or
+%  (at your option) any later version.
+%
+%  This program is distributed in the hope that it will be useful,
+%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  GNU General Public License for more details.
+%
+%  You should have received a copy of the GNU General Public License
+%  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 % This function includes the behavioral data as recorded by Psychtoolbox in
 % the EEG structure.
 % Problem: some recording were started too late or terminated too early, so
 % that the EEG structure lacks a few trials. This function matches the EEG
-% triggers with the corresponding information ion the behavioral data to
+% triggers with the corresponding information in the behavioral data to
 % find out which information about which trials to merge.
 
 
 % Load the logfile.
 load([cfg.dir_behavior cfg.subject_name '_Logfile.mat']);
 
-  
+
 % This code assumes that the "logfile" is a Matlab struct called Info.T,
 % where T is a struct of length ntrials, such that T(17) contains all the
 % info for the 17th trial. We want to automatically include all fields in
@@ -20,13 +38,13 @@ load([cfg.dir_behavior cfg.subject_name '_Logfile.mat']);
 
 % Change these lines accordingly if your structure has a different name.
 if isfield(cfg, 'trial_struct_name')
-	if isempty(cfg.trial_struct_name)
-		Trials = Info.T;
-	else
-		Trials = eval(cfg.trial_struct_name);
-	end
+    if isempty(cfg.trial_struct_name)
+        Trials = Info.T;
+    else
+        Trials = eval(cfg.trial_struct_name);
+    end
 else
-	Trials = Info.T;
+    Trials = Info.T;
 end
 
 fields = fieldnames(Trials);
@@ -43,7 +61,7 @@ ntrials = length(Trials);
 % loop over each field of the trial structure. Check if all values are
 % scalar. Strings are not considered scalar, but as soon as it's a string
 % array or cell of strings, ischar is false.
-for ifield = fields'    
+for ifield = fields'
     res = arrayfun(@(x)(isscalar(x) | ischar(x)), [Trials.(ifield{:})]);
     if ~all(res)
         Trials = rmfield(Trials, ifield{:});
@@ -59,15 +77,15 @@ outfields = fieldnames(Trials);
 % trial in the logfile and the first trials in both data structures
 % correspond to the same trial!
 for ievent = 1:length(EEG.event)
-
+    
     thisepoch = EEG.event(ievent).epoch;
-
-    for ifield = 1:length(outfields)  
+    
+    for ifield = 1:length(outfields)
         
         % Check if the field in the log file is empty. If yes, fill with
         % arbitrary value.
         try
-        new_event_value = Trials(thisepoch).(outfields{ifield});
+            new_event_value = Trials(thisepoch).(outfields{ifield});
         catch ME
             fprintf(2,['If you''re getting caught here, probably some trial(s) '...
                 'weren''t deleted in the EEG but in the logfile data.\n'...
@@ -80,7 +98,8 @@ for ievent = 1:length(EEG.event)
         end
         if isempty(new_event_value)
             fillvalue = 666;
-            fprintf('Empty event field found on trial %d in event field %s!\n', thisepoch, outfields{ifield});
+            fprintf('Empty event field found on trial %d in event field %s!\n',...
+                thisepoch, outfields{ifield});
             fprintf('Filling this field with arbitrary value of %d\n', fillvalue)
             new_event_value = fillvalue;
         end
@@ -94,9 +113,9 @@ end
 if length(EEG.epoch) ~= ntrials
     w = sprintf('\nEEG file has %d trials, but Logfile has %d trials.\nYou should check this!', ...
         length(EEG.epoch), ntrials);
-		fid = fopen([cfg.dir_eeg,'ErrorInImportBehavior.txt'], 'wt');
-		fprintf(fid, w);
-        fclose(fid);
+    fid = fopen([cfg.dir_eeg,'ErrorInImportBehavior.txt'], 'wt');
+    fprintf(fid, w);
+    fclose(fid);
     warning(w)
     error(w)
 end
@@ -119,7 +138,8 @@ if cfg.deletebadlatency
             'median latency of this trigger across all trials.\n\n',...
             'Trials: %s\n'], num2str(cfg.checklatency), num2str(find(rejidx)));
         fclose(fid);
-        EEG = pop_rejepoch(EEG,rejidx,0);
+        [EEG, com] = pop_rejepoch(EEG,rejidx,0);
+        EEG = eegh(com, EEG);
     end
 end
 
@@ -130,3 +150,11 @@ EEG = eeg_checkset(EEG, 'eventconsistency');
 % when it might be useful, especially for the more complex fields that
 % could not be included in the EPOCH structure.
 EEG.trialinfo = Trials;
+
+if cfg.keep_continuous
+    CONTEEG.prep01epoch = EEG.epoch;
+    CONTEEG.contevent = CONTEEG.event;
+    CONTEEG.epochevent = EEG.event;
+    CONTEEG.trialinfo = EEG.trialinfo;
+end
+end

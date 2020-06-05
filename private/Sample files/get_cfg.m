@@ -6,11 +6,7 @@ function [CFG, S] = get_cfg(idx, S)
 %% ------------------------------------------------------------------------
 % Read info for this subject and get file names and dirctories.
 % -------------------------------------------------------------------------
-rootfilename    = which('get_cfg.m');
-rootpath        = rootfilename(1:regexp(rootfilename,...
-    [filesep, 'Analysis', filesep, 'EEG', filesep, 'get_cfg.m']));
-
-CFG.dir_main = rootpath;
+CFG.dir_main = '/data/git-repos/my_project/';
 
 if nargin>0                
     CFG.subject_name  = char(S.Name(idx));
@@ -125,7 +121,7 @@ CFG.preproc_reference   = []; % (31=Pz@Biosemi,32=Pz@CustomM43Easycap);  'robust
 % Files produced with the prep_* functions always store data with the
 % preproc ref. The functions called by the design_master rereference to the
 % postproc_reference. Can be 'keep' to simply keep the preproc reference
-CFG.postproc_reference  = 'keep'; % empty = average reference
+CFG.postproc_reference  = 'keep'; % empty = average reference; for M34: 'A16' & 'B32' = Mastoids
 
 % Do you want to have a new sampling rate?
 CFG.do_resampling     = 1;
@@ -157,6 +153,23 @@ CFG.do_cleanline = 1;
 % Do you want to use linear detrending (requires Andreas Widmann's
 % function).?
 CFG.do_detrend = 0;
+
+%% Bad channel detection parameters
+% do you want to interpolate bad channels? (happens before ICA)
+CFG.do_interp = 1;
+
+% there are (currently) three types of bad channels: those in your
+% spreadsheet (column "interp_chans"), automatically detected flat channels
+% and automatically detected noisy channels. Which do you want to
+% interpolate?
+CFG.interp_these = {'noisy', 'spread', 'flat'}; 
+
+% show the noisy channels in an interactive plot before interpolation?
+CFG.interp_plot = true;
+
+% ...If not interpolating, do you want to ignore those channels in
+% automatic artifact detection methods? 1 = use only the other channels.
+CFG.ignore_interp_chans = 1;
 
 %% Artifact detection parameters
 % set all the CFG.do_rej_* to 0 to deactivate automatic artifact
@@ -193,14 +206,6 @@ CFG.rej_prob_globthresh = 4;
 CFG.do_rej_kurt         = 0;
 CFG.rej_kurt_locthresh  = 6;
 CFG.rej_kurt_globthresh = 3; 
-
-% The SubjectsTable.xlsx contains a column "interp_chans". Do you want to
-% interpolate these channels in prep02 (i.e., prior to ICA)?
-CFG.do_interp = 0;
-
-% ...If not interpolating, do you want to ignore those channels in
-% automatic artifact detection methods? 1 = use only the other channels.
-CFG.ignore_interp_chans = 1;
 
 %% Eyelink related input
 % Do you want to coregister eyelink eyetracking data?
@@ -258,12 +263,12 @@ CFG.ica_rm_continuous = 'epoch'; % if you want to do both, simply change this li
 CFG.ica_plot_ICs      = true; 
 
 % Ask for confirmation to remove ICs?
-CFG.ica_ask_for_confirmation = false;
+CFG.ica_ask_for_confirmation = true;
 
 % Select occular ICs based on eyetrack-data? requires EYE-ICA
 % (incompatible with resampling! - see help eyetrackerica)
 CFG.do_eyetrack_ica          = true;
-CFG.eyetracker_ica_varthresh = 1.3; % variance ratio threshold
+CFG.eyetracker_ica_varthresh = 1.3; % variance ratio threshold (var(sac)/var(fix))
 CFG.eyetracker_ica_sactol    = [5 10]; % Extra temporal tolerance around saccade onset and offset
 CFG.eyetracker_ica_feedback  = 4; % do you want to see plots of (1) all selected bad components (2) all good (3) bad & good or (4) no plots?
 
@@ -282,7 +287,7 @@ CFG.do_corr_ica = false;
 CFG.ic_corr_bad = 0.65; %threshold for IC rejection (uses absolute values)
 
 % select components with SASICA?
-CFG.do_SASICA       = true;
+CFG.do_SASICA       = false;
 CFG.sasica_heogchan = num2str(CFG.data_chans+1);
 CFG.sasica_veogchan = num2str(CFG.data_chans+2);
 CFG.sasica_autocorr = 20;

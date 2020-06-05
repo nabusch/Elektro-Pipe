@@ -1,7 +1,25 @@
-function [EEG, CONTEEG] = func_prepareEEG(EEG, cfg, S, who_idx)
+function [EEG, CONTEEG] = func_prepareEEG(EEG, cfg, EP, id_idx)
+%
+% wm: THIS FUNCTION STILL NEEDS A PROPER DOCUMENTATION!
 
-% Convert data to double precision, recommended for filtering and other
-% precedures.
+% (c) Niko Busch & Wanja Mössing (contact: niko.busch@gmail.com)
+%
+%  This program is free software: you can redistribute it and/or modify
+%  it under the terms of the GNU General Public License as published by
+%  the Free Software Foundation, either version 3 of the License, or
+%  (at your option) any later version.
+%
+%  This program is distributed in the hope that it will be useful,
+%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  GNU General Public License for more details.
+%
+%  You should have received a copy of the GNU General Public License
+%  along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
+%% Convert data to double precision
+%recommended for filtering and other procedures.
 EEG.data = double(EEG.data);
 
 % if user specified to keep continuous data, CONTEEG is created as second
@@ -9,542 +27,75 @@ EEG.data = double(EEG.data);
 CONTEEG = struct();
 
 % --------------------------------------------------------------
-% If replace_chans are defined for this subject, replace bad
-% channels now.
+% Replace channels as indicated in the spreadsheet
 % --------------------------------------------------------------
-channels_need_replacement = true;
-try % will fail for cells (i.e., when some IDs need replacement but not this one)
-    if isempty(S.replace_chans(who_idx)) || isnan(S.replace_chans(who_idx))
-        fprintf('No channels to replace.\n');
-        channels_need_replacement = false;
-    end
-catch
-    if isempty(cell2mat(S.replace_chans(who_idx)))
-        fprintf('No channels to replace.\n');
-        channels_need_replacement = false;
-    end
-end
-if channels_need_replacement
-    replace_chans = str2num(cell2mat(S.replace_chans(who_idx)));
-    for ichan = 1:size(replace_chans,1)
-        bad_chan  = replace_chans(ichan, 1);
-        good_chan = replace_chans(ichan, 2);
-        
-        EEG.data(bad_chan,:) = EEG.data(good_chan, :) ;
-        com = sprintf('Replacing bad electrode %d with good electrode %d.\n', ...
-            bad_chan, good_chan);
-        EEG = eegh(com, EEG);
-        disp(com);
-    end
-end
-
+EEG = elektro_replacechans(EEG, EP, id_idx);
 
 % --------------------------------------------------------------
 % Delete unwanted channels and import channel locations.
 % --------------------------------------------------------------
-[EEG, com] = pop_select(EEG, 'channel', cfg.data_urchans);
-EEG = eegh(com, EEG);
-
-%     The following step should be unnecessary if the data were recorded
-%     with a proper *.cfg file for the ActiView recording program. This cfg
-%     file should specifiy the channel label for every channel including
-%     external electrodes.
-%     Note: command history is broken for this function - not written to
-%     eegh.
-%     EEG = pop_chanedit(EEG, 'changefield',{67 'labels' 'AFp9'}, 'changefield',{65 'type' 'EOG'});
-
-% EEG.chanlocs(67).labels = 'AFp9';
-% EEG.chanlocs(68).labels = 'AFp10';
-% EEG.chanlocs(69).labels = 'IO1';
-
-if ~isempty(cfg.heog_chans)
-    fprintf('Computing HEOG from channels %s and %s\n', ...
-        EEG.chanlocs(cfg.heog_chans(1)).labels, ...
-        EEG.chanlocs(cfg.heog_chans(2)).labels);
-    
-    iHEOG = EEG.nbchan + 1;
-    EEG.nbchan = iHEOG;
-    EEG.chanlocs(iHEOG) = EEG.chanlocs(end);
-    EEG.chanlocs(iHEOG).labels = 'HEOG';
-    EEG.data(iHEOG,:) = EEG.data(cfg.heog_chans(1),:,:) - EEG.data(cfg.heog_chans(2),:,:);
-end
-
-if ~isempty(cfg.veog_chans)
-    fprintf('Computing VEOG from channels %s and %s\n', ...
-        EEG.chanlocs(cfg.veog_chans(1)).labels, ...
-        EEG.chanlocs(cfg.veog_chans(2)).labels)
-    
-    iVEOG = EEG.nbchan + 1;
-    EEG.nbchan = iVEOG;
-    EEG.chanlocs(iVEOG) = EEG.chanlocs(end);
-    EEG.chanlocs(iVEOG).labels = 'VEOG';
-    EEG.data(iVEOG,:) = EEG.data(cfg.veog_chans(1),:,:) - EEG.data(cfg.veog_chans(2),:,:);
-end
-
-[EEG] = pop_chanedit(EEG, 'lookup', cfg.chanlocfile);
+EEG = elektro_layoutprep(EEG, cfg);
 
 % --------------------------------------------------------------
 % Filter the data.
 % --------------------------------------------------------------
-if cfg.do_lp_filter
-    [m, ~] = pop_firwsord('blackman', EEG.srate, cfg.lp_filter_tbandwidth);
-    [EEG, com] = pop_firws(EEG, 'fcutoff', cfg.lp_filter_limit, 'ftype',...
-        'lowpass', 'wtype', 'blackman', 'forder', m);
+EEG = elektro_prepfilter(EEG, cfg);
+
+% --------------------------------------------------------------
+% Downsample data.
+% --------------------------------------------------------------
+if ~isempty(cfg.new_sampling_rate)
+    [EEG, com] = pop_resample(EEG, cfg.new_sampling_rate);
     EEG = eegh(com, EEG);
 end
 
-if cfg.do_hp_filter
-    switch(cfg.hp_filter_type)
-        
-        case('butterworth') % This is a function of the separate ERPlab toolbox.
-            [EEG, com] = pop_ERPLAB_butter1( EEG, cfg.hp_filter_limit, 0, 5); % requires ERPLAB plugin
-            EEG = eegh(com, EEG);
-            
-        case('kaiser')
-            m = pop_firwsord('kaiser', EEG.srate, cfg.hp_filter_tbandwidth, cfg.hp_filter_pbripple);
-            beta = pop_kaiserbeta(cfg.hp_filter_pbripple);
-            
-            [EEG, com] = pop_firws(EEG, 'fcutoff', cfg.hp_filter_limit, ...
-                'ftype', 'highpass', 'wtype', 'kaiser', ...
-                'warg', beta, 'forder', m);
-            EEG = eegh(com, EEG);
-        case('eegfiltnew')
-            [EEG, com] = pop_eegfiltnew(EEG, cfg.hp_filter_limit, 0);
-            %   >> [EEG, com, b] = pop_eegfiltnew(EEG, locutoff, hicutoff, filtorder,
-%                                     revfilt, usefft, plotfreqz, minphase);
-            EEG = eegh(com, EEG);
-    end
-end
-
-if cfg.do_notch_filter
-    EEG = pop_eegfiltnew(EEG, cfg.notch_filter_lower,...
-        cfg.notch_filter_upper, [], 1);
-end
-
-
 % --------------------------------------------------------------
-% Downsample data. Removing and adding back the path is necessary for
-% avoiding an error of the resample function. Not sure why. Solution is
-% explained here: https://sccn.ucsd.edu/bugzilla/show_bug.cgi?id=1184
+% Apply reference
 % --------------------------------------------------------------
-if cfg.do_resampling
-    [pathstr, ~, ~] = fileparts(which('resample.m'));
-    rmpath([pathstr '/']);
-    addpath([pathstr '/']);
-    [EEG, com] = pop_resample( EEG, cfg.new_sampling_rate);
-    EEG = eegh(com, EEG);
-end
-
-
-% --------------------------------------------------------------
-% If wanted: re-reference to new reference, but exclude the new bipolar
-% channels.
-% --------------------------------------------------------------
-if cfg.do_preproc_reref
-    %robust average (requires PREP extension)
-    if strcmp(cfg.preproc_reference, 'robust')
-        %%settings for robust average reference
-        fprintf('\n\nfunc_prepareEEG: computing robust reference...\n');
-        % don't use channels as evaluation channels, of which we already
-        % know that they are bad.
-        if iscell(S.interp_chans)
-            evalChans = find(~ismember(...
-                {EEG.chanlocs(cfg.data_chans).labels},...
-                strsplit(S.interp_chans{who_idx},',')));
-        else
-            evalChans = cfg.data_chans;
-        end
-        
-        robustParams = struct('referenceChannels', evalChans,...
-            'evaluationChannels', evalChans,...
-            'rereference', cfg.data_chans,...
-            'interpolationOrder', 'post-reference',...
-            'correlationThreshold', 0.1e-99,...
-            'ransacOff', true); %disable correlation threshold, as we don't want to detect half of the channels.
-        
-        % compute reference channel
-        [~,robustRef] = performReference(EEG, robustParams);
-        % add new robust reference channel to EEG
-        EEG.data(end+1,:) = robustRef.referenceSignal;
-        EEG.nbchan = size(EEG.data,1);
-        EEG.chanlocs(end+1).labels = 'RobustRef';
-        EEG.robustRef = robustRef;
-        % pass this new reference to eeglab's default rereferencing
-        % function. This is necessary, because PREP's performReference only
-        % outputs an EEG structure where all channels are interpolated.
-        [EEG, com] = pop_reref( EEG, 'RobustRef','keepref','on',...
-            'exclude', cfg.data_chans(end)+1:EEG.nbchan-1);
-    else
-        % normal reference
-        [EEG, com] = pop_reref( EEG, cfg.preproc_reference, ...
-            'keepref','on', ...
-            'exclude', cfg.data_chans(end)+1:EEG.nbchan);
-    end
-    EEG = eegh(com, EEG);
-else
-    disp('No rereferencing after import.')
-end
+EEG = elektro_preprocref(EEG, cfg, EP);
 
 %---------------------------------------------------------------
-% Optional: remove all events from a specific trigger device.
+% Remove all events from non-configured trigger devices
 %---------------------------------------------------------------
 if isfield(EEG.event,'device') && ~isempty(cfg.trigger_device)
     fprintf('\nRemoving all event markers not sent by %s...\n',cfg.trigger_device);
-    [EEG] = pop_selectevent( EEG, 'device', cfg.trigger_device, 'deleteevents','on');
+    [EEG, ~, com] = pop_selectevent( EEG, 'device', cfg.trigger_device, 'deleteevents','on');
+    EEG = eegh(com, EEG);
 end
 
 % --------------------------------------------------------------
-% Import Eyetracking data .
+% Import Eyetracking data.
 % --------------------------------------------------------------
-if cfg.coregister_Eyelink
-    EEG = func_importEye(EEG, cfg);
-end
+EEG = elektro_importEye(EEG, cfg);
+
+% --------------------------------------------------------------
+% Interpolate bad channels
+% --------------------------------------------------------------
+EEG = elektro_channelinterpolater(EEG, cfg, EP, id_idx);
 
 % --------------------------------------------------------------
 % Epoch the data.
 % --------------------------------------------------------------
-if cfg.keep_continuous
-    CONTEEG = EEG;
-end
-
-% Optional: remove all events except the target events from the EEG
-% structure.
-%[EEG] = pop_selectevent( EEG, 'type', [cfg.trig_target,cfg.trig_omit] , ...
-%    'deleteevents','on','deleteepochs','on','invertepochs','off');
-[EEG, ~, com] = pop_epoch( EEG, strread(num2str(cfg.trig_target),'%s')',...
-    [cfg.epoch_tmin cfg.epoch_tmax], ...
-    'newname', 'BDF file epochs', 'epochinfo', 'yes');
-EEG = eegh(com, EEG);
-
-% Optional: remove all epochs containing triggers specified in CFG.trig_omit
-%           || not containing all triggers in CFG.trig_omit_inv
-if ~isempty(cfg.trig_omit) || ~isempty(cfg.trig_omit_inv)
-    rejidx = zeros(1,length(EEG.epoch));
-    if cfg.coregister_Eyelink %coregistered triggers contain strings
-        for i=1:length(EEG.epoch)
-            switch cfg.trig_omit_inv_mode
-                case {'AND', 'and', 'And'}
-                    if sum(ismember(num2str(cfg.trig_omit(:)),...
-                            EEG.epoch(i).eventtype(:)))>=1 ||...
-                            ismember(i,[cfg.trial_omit]) ||...
-                            (~isempty(cfg.trig_omit_inv) &&...
-                            ~all(ismember(num2str(cfg.trig_omit_inv(:)),...
-                            EEG.epoch(i).eventtype(:))))
-                        rejidx(i) =  1;
-                    end
-                case {'OR', 'or', 'Or'}
-                    if sum(ismember(num2str(cfg.trig_omit(:)),...
-                            EEG.epoch(i).eventtype(:)))>=1 ||...
-                            ismember(i,[cfg.trial_omit]) ||...
-                            (~isempty(cfg.trig_omit_inv) &&...
-                            ~any(ismember(num2str(cfg.trig_omit_inv(:)),...
-                            EEG.epoch(i).eventtype(:))))
-                        rejidx(i) =  1;
-                    end
-            end
-        end
-    else
-        for i=1:length(EEG.epoch)
-            switch cfg.trig_omit_inv_mode
-                case {'AND', 'and', 'And'}
-                    if sum(ismember(cfg.trig_omit,[EEG.epoch(i).eventtype{:}]))>=1 ||...
-                            ismember(i,[cfg.trial_omit]) ||...
-                            (~isempty(cfg.trig_omit_inv) &&...
-                            ~all(ismember(cfg.trig_omit_inv,[EEG.epoch(i).eventtype{:}])))
-                        rejidx(i) =  1;
-                    end
-                case {'OR','Or','or'}
-                    if sum(ismember(cfg.trig_omit,[EEG.epoch(i).eventtype{:}]))>=1 ||...
-                            ismember(i,[cfg.trial_omit]) ||...
-                            (~isempty(cfg.trig_omit_inv) &&...
-                            ~any(ismember(cfg.trig_omit_inv,[EEG.epoch(i).eventtype{:}])))
-                        rejidx(i) =  1;
-                    end
-            end
-        end
-    end
-    
-    % in case we're using the unfold-pipe, deleting epochs is useless. But
-    % we want to keep the latencies of those trials, to later interpolate
-    % the respective time-windows.
-    if cfg.keep_continuous
-        ipoch = 0;
-        for irej = find(rejidx)
-            [foundlow, foundhigh] = deal(false);
-            ipoch = ipoch + 1;
-            % find the urevent index of the target trigger
-            if cfg.coregister_Eyelink
-                tmpidx = find(strcmp({EEG.epoch(irej).eventtype{:}},...
-                    num2str(cfg.trig_target)));
-            else
-                tmpidx = find([EEG.epoch(irej).eventtype{:}] == cfg.trig_target);
-            end
-            urindx = EEG.epoch(irej).eventurevent{tmpidx};
-            % sanity check
-            assert(EEG.urevent(urindx).type == cfg.trig_target,...
-                ['Urevent and found event do not match. This is a ',...
-                'serious error and could have various reasons. ',...
-                'You should check this!']);
-            % get the preceding and the following trial interrupting
-            % triggers in the urevent structure
-            k = 0;
-            while ~(foundlow && foundhigh)
-                k = k + 1;
-                mindx = urindx - k;
-                maxdx = urindx + k;
-                if mindx <= 0 && ~foundlow
-                    msg = sprintf(['Trial %i does not seem to be ',...
-                        'preceded by a cfg.trig_trial_onset. Assuming ',...
-                        'that it''s the first trial in the data track'],...
-                        irej);
-                    warning(msg);
-                    foundlow = true;
-                    minurindx(ipoch) = 1;
-                elseif ~foundlow
-                    if EEG.urevent(mindx).type == cfg.trig_trial_onset
-                        foundlow = true;
-                        minurindx(ipoch) = mindx;
-                    end
-                end
-                if maxdx >= length(EEG.urevent) && ~foundhigh
-                    msg = sprintf(['Trial %i does not seem to be ',...
-                        'followed by a cfg.trig_trial_onset. Assuming ',...
-                        'that it''s the last trial in the data track'],...
-                        irej);
-                    warning(msg);
-                    foundhigh = true;
-                    maxurindx(ipoch) = length(EEG.urevent);
-                elseif ~foundhigh
-                    if EEG.urevent(maxdx).type == cfg.trig_trial_onset
-                        foundhigh = true;
-                        maxurindx(ipoch) = maxdx;
-                    end
-                end
-            end
-        end
-        % get the latency information for later interpolation in unfold
-        rejtrls = find(rejidx);
-        if ~isempty(rejtrls)
-            for irej = 1:length(minurindx)
-                EEG.uf_rej_latencies(irej, 1) = ...
-                    EEG.urevent(minurindx(irej)).latency;
-                EEG.uf_rej_latencies(irej, 2) = ...
-                    EEG.urevent(maxurindx(irej)).latency;
-                EEG.uf_rej_latencies(irej, 3) = rejtrls(irej);
-                EEG.uf_rej_latencies(irej, 4) = 0;
-            end
-            CONTEEG.uf_rej_latencies = EEG.uf_rej_latencies;
-        end
-    end
-    EEG = pop_rejepoch(EEG, rejidx, 0);
-    EEG = eegh(com, EEG);
-end
+[EEG, CONTEEG] = elektro_epoch(EEG, cfg, CONTEEG);
 
 %---------------------------------------------------------------
-% Optional: check latencies of specific triggers within epochs
+% check latencies of specific triggers within epochs
 %---------------------------------------------------------------
-if ~isempty(cfg.checklatency)
-    %find all latencies
-    badtrls = [];
-    tridx = 0;
-    for iTrigger = cfg.checklatency
-        tridx=tridx+1;
-        for iEpoch=1:length(EEG.epoch)
-            if cfg.coregister_Eyelink
-                idx = strcmp(num2str(iTrigger),EEG.epoch(iEpoch).eventtype);
-            else
-                if iscell(EEG.epoch(iEpoch).eventtype)
-                    idx = cell2mat(EEG.epoch(iEpoch).eventtype)==iTrigger;
-                else
-                    idx = [EEG.epoch(iEpoch).eventtype]==iTrigger;
-                end
-            end
-            if any(idx)
-                trigLatency(tridx,iEpoch) = EEG.epoch(iEpoch).eventlatency(idx);
-            else
-                trigLatency(tridx,iEpoch) = {9e+99}; %in the rare case that the current trigger does not appear in the epoch
-            end
-        end
-        badtrls = [badtrls,find([trigLatency{tridx,:}]-median([trigLatency{tridx,:}])>cfg.allowedlatency)];
-    end
-    EEG.latencyBasedRejection = badtrls;
-    %create a plot and store which trials look weird. These can later be
-    %deleted after coregistration with behavioral data.
-    set(0,'DefaultFigureVisible','off');
-    figure;
-    for iPlot=1:length(cfg.checklatency)
-        subplot(ceil(length(cfg.checklatency)/3),3,iPlot);
-        histogram([trigLatency{iPlot,:}]);
-        xlabel('[ms]');ylabel('N trials');
-        title(['Trigger ',num2str(cfg.checklatency(iPlot))]);
-    end
-    
-    % suptitle is nice to have but not necessary and only available in the
-    % Bioinformatics Toolbox
-    v = ver;
-    if ismember('Bioinformatics Toolbox',{v.Name})
-        suptitle(['Deleted ',num2str(length(EEG.latencyBasedRejection)),...
-            ' trials']);
-    end
-    
-    %temporarily store how many trials have been deleted and add that to
-    %table.
-    fid = fopen([cfg.dir_eeg,filesep,'badlatency.txt'],'a');
-    fprintf(fid,num2str(length(EEG.latencyBasedRejection)));
-    fclose(fid);
-    set(0,'DefaultFigureVisible','off');
-    
-    % in case we're using the unfold-pipe, deleting epochs is useless. But
-    % we want to keep the latencies of those trials, to later interpolate
-    % the respective time-windows.
-    if cfg.keep_continuous && ~isempty(badtrls)
-        ipoch = 0;
-        for irej = badtrls
-            [foundlow, foundhigh] = deal(false);
-            ipoch = ipoch + 1;
-            % find the urevent index of the target trigger
-            tmpidx = find([EEG.epoch(irej).eventtype{:}] == cfg.trig_target);
-            urindx = EEG.epoch(irej).eventurevent{tmpidx};
-            % sanity check
-            assert(EEG.urevent(urindx).type == cfg.trig_target,...
-                ['Urevent and found event do not match. This is a ',...
-                'serious error and could have various reasons. ',...
-                'You should check this!']);
-            % get the preceding and the following trial interrupting
-            % triggers in the urevent structure
-            k = 0;
-            while ~(foundlow && foundhigh)
-                k = k + 1;
-                mindx = urindx - k;
-                maxdx = urindx + k;
-                if mindx <= 0 && ~foundlow
-                    msg = sprintf(['Trial %i does not seem to be ',...
-                        'preceded by a cfg.trig_trial_onset. Assuming ',...
-                        'that it''s the first trial in the data track'],...
-                        irej);
-                    warning(msg);
-                    foundlow = true;
-                    minurindx(ipoch) = 1;
-                elseif ~foundlow
-                    if EEG.urevent(mindx).type == cfg.trig_trial_onset
-                        foundlow = true;
-                        minurindx(ipoch) = mindx;
-                    end
-                end
-                if maxdx >= length(EEG.urevent) && ~foundhigh
-                    msg = sprintf(['Trial %i does not seem to be ',...
-                        'followed by a cfg.trig_trial_onset. Assuming ',...
-                        'that it''s the last trial in the data track'],...
-                        irej);
-                    warning(msg);
-                    foundhigh = true;
-                    maxurindx(ipoch) = length(EEG.urevent);
-                elseif ~foundhigh
-                    if EEG.urevent(maxdx).type == cfg.trig_trial_onset
-                        foundhigh = true;
-                        maxurindx(ipoch) = maxdx;
-                    end
-                end
-            end
-        end
-        % get the latency information for later interpolation in unfold
-        if isfield(EEG, 'uf_rej_latencies')
-            startidx = size(EEG.uf_rej_latencies,1);
-        else
-            startidx = 0;
-        end
-        for irej = 1:length(minurindx)
-            EEG.uf_rej_latencies(startidx + irej, 1) = ...
-                EEG.urevent(minurindx(irej)).latency;
-            EEG.uf_rej_latencies(startidx + irej, 2) = ...
-                EEG.urevent(maxurindx(irej)).latency;
-            EEG.uf_rej_latencies(startidx + irej, 3) = badtrls(irej);
-            EEG.uf_rej_latencies(startidx + irej, 4) = 1;
-        end
-        CONTEEG.uf_rej_latencies = EEG.uf_rej_latencies;
-    end
-end
-
+[EEG, CONTEEG] = elektro_checklatency(EEG, cfg, CONTEEG);
 
 % --------------------------------------------------------------
 % Remove 50Hz line noise using Tim Mullen's cleanline.
 % --------------------------------------------------------------
-if cfg.do_cleanline
-    disp('Running cleanline algorithm for segmented data (PREP version)...');
-    % FFT before cleanline
-    % select 2 random channels for visualization
-    randchs = randsample(cfg.data_chans, 2);
-    set(0,'DefaultFigureVisible','off');
-    pop_fourieeg(EEG, randchs, [], 'EndFrequency', 100);
-    winlength = EEG.pnts / EEG.srate;
-    lineNoiseIn = struct('lineNoiseMethod', 'clean', ...
-        'lineNoiseChannels', cfg.data_chans,...
-        'Fs', EEG.srate, ...
-        'lineFrequencies', [50, 100],...
-        'p', 0.01, ...
-        'fScanBandWidth', 2, ...
-        'taperBandWidth', 2, ...
-        'taperWindowSize', winlength, ...
-        'taperWindowStep', winlength, ...
-        'tau', 100, ...
-        'pad', 2, ...
-        'fPassBand', [0 EEG.srate/2], ...
-        'maximumIterations', 10);
-    [EEG, ~] = cleanLineNoise(EEG, lineNoiseIn);
-    EEG = eegh(com, EEG);
-    % FFT after cleanline
-    pop_fourieeg(EEG, randchs, [], 'EndFrequency', 100);
-    %         cleanline_qualityplot(EEG);
-    disp('cleanline done.')
-    
-    if cfg.keep_continuous
-        disp('Running cleanline algorithm for continuous data (PREP version)...');
-        % FFT before cleanline
-        pop_fourieeg(CONTEEG, randchs, [], 'EndFrequency', 100);
-        
-        %find winlength that takes into account all data points and is
-        %between 3 and 4 seconds (cleanline recommendation). If that's not
-        %possible, increase the range stepwise.
-        K = 1:ceil(CONTEEG.pnts / 2);
-        D = K(rem(CONTEEG.pnts, K) == 0);
-        W = [];
-        startrng = [3000, 4000];
-        step = 10;
-        i = 0;
-        while ~any(W)
-            i = i + 1;
-            W = (CONTEEG.pnts./D >= startrng(1) - step * i) &...
-                (CONTEEG.pnts./D <= startrng(2) + step * i);
-        end
-        
-        %it's possible that we catch multiple possible values. In that case
-        %simply use the first.
-        W = find(W, 1);
-        winlength = (CONTEEG.pnts / D(W)) / 1000;
-        lineNoiseIn.taperWindowSize = winlength;
-        lineNoiseIn.taperWindowStep = winlength;
-        [CONTEEG, ~] = cleanLineNoise(CONTEEG, lineNoiseIn);
-        CONTEEG = eegh(com, CONTEEG);
-        
-        % FFT after cleanline
-        pop_fourieeg(CONTEEG, randchs, [], 'EndFrequency', 100);
-        disp('cleanline done.')
-    end
-end
-set(0, 'DefaultFigureVisible', 'on');
+[EEG, CONTEEG] = elektro_cleanline(EEG, cfg, CONTEEG);
 
 % --------------------------------------------------------------
 % Detrend the data.
 % This is an external function provided by Andreas Widmann:
 % https://github.com/widmann/erptools/blob/master/eeg_detrend.m
+% (now also distributed along with EP)
 % --------------------------------------------------------------
 if cfg.do_detrend
     EEG = eeg_detrend(EEG);
     EEG = eegh('EEG = eeg_detrend(EEG);% https://github.com/widmann/erptools/blob/master/eeg_detrend.m', EEG);
 end
-
-% Convert back to single precision.
-EEG.data = single(EEG.data);
-if cfg.keep_continuous
-    CONTEEG.data = single(CONTEEG.data);
 end

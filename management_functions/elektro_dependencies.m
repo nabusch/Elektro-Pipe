@@ -5,7 +5,7 @@ function [] = elektro_dependencies()
 %
 % author: Wanja Moessing, moessing@wwu.de, September 2019
 
-%  Copyright (C) 2019 Wanja Moessing
+%  Copyright (C) 2019- Wanja Moessing
 %
 %  This program is free software: you can redistribute it and/or modify
 %  it under the terms of the GNU General Public License as published by
@@ -68,6 +68,13 @@ if ~compare_semantics(installed, desired, '>=')
     msg = mkmsg('PREP', desired, msg);
 end
 
+
+% clean rawdata for channel cleanup
+installed = getver('eegplugin_clean_rawdata.m');
+desired = '2.1';
+if ~compare_semantics(installed, desired, '>=')
+    msg = mkmsg('PREP', desired, msg);
+end
 
 if ~isempty(msg)
     error(msg);

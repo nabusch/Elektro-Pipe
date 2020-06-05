@@ -28,7 +28,10 @@ end
 % technical detail: As of Matlab 2019a, afaik there's no option to run in
 % parallel or serial based on a config switch. serializing the parfor via
 % setting the second argument to '0' is slower than a regular for-loop, and
-% hence not a solution.
+% hence not a solution. 
+% UPDATE 2020: I compiled a binica version that uses the intel MKL. This
+% version uses all cores and is quite a bit faster than the default binica
+% binary. find it at github.com/wanjam/binica
 
 %warning(sprintf(['You''re running ICA single-threaded. Consider\n',...
 %    'activating multi-threaded ICA to speed up the process. See the\n',...
@@ -137,6 +140,15 @@ for isub = 1:length(who_idx)
     elseif CFG.ica_ncomps ~= 0
         fprintf('Extracting mandatory number of %d ICA components from %d channels.\n', ...
             CFG.ica_ncomps, length(CFG.ica_chans));
+        
+        if isfield(EEG.etc, 'elektro')
+            if isfield(EEG.etc.elektro, 'interpolated_chans')
+                n_less = numel(EEG.etc.elektro.interpolated_chans);
+                fprintf(['reducing the number of components by %i to account '...
+                    'for rank deficiency due to interpolation.\n'], n_less);
+                CFG.ica_ncomps = CFG.ica_ncomps - n_less;
+            end
+        end
         
         [EEG, com] = pop_runica(EEG, 'icatype', CFG.ica_type, ...
             'extended', CFG.ica_extended, ...

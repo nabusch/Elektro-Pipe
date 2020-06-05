@@ -47,85 +47,13 @@ for isub = 1:length(who_idx)
     
     % get amount of initial trials to store the amount of deleted ones in
     % the end
-    nUrTrials = size(EEG.data,3);
+    nUrTrials = size(EEG.data, 3);
     
     %% ---------------------------------------------------------------------
     % If EP file specifies channels for interpolation for this subject,
     % interpolate them now.
     % ---------------------------------------------------------------------
-    if ismember('interp_chans',EP.S.Properties.VariableNames)
-        interp_chans = EP.S.interp_chans(who_idx(isub));
-        % Warn about consequences for ICA
-        if iscell(interp_chans) %it's not cell if not a single subject has to-be-interpolated channels
-            if ~cellfun(@isempty, interp_chans) && CFG.do_interp
-                warning(['Your "SubjectsTable" spreadsheet tells me\n',...
-                    'to interpolate one or more channels.\n',...
-                    'This could obscure ICA in the next step.\n',...
-                    'Do you really want to proceed with the ',...
-                    '(spherical) interpolation?\nIf not, change',...
-                    'CFG.do_interp to 0.']);
-                pause(5);
-            end
-        end
-    else
-        interp_chans = [];
-    end
-    
-    %interp_chans is cell, as soon as one of the subjects has a channel to
-    %be interpolated...
-    if iscell(interp_chans)
-        %check if cell is empty
-        if cellfun(@isempty,interp_chans)
-            interp_chans = NaN;
-        else
-            % For multiple channels, split string by , or ;
-            if ismember(',',interp_chans{:})
-                interp_chans = strsplit(interp_chans{:},',');
-            elseif ismember(';',interp_chans{:})
-                interp_chans = strsplit(interp_chans{:},';');
-            else
-                disp(['Did not find comma or semicolon in interp_chan, assuming'...
-                    ' there''s just one channel to interpolate']);
-            end
-            % check if channels have been entered as labels (e.g., Pz) or as index
-            isnumber = isstrprop(interp_chans,'digit');
-            clear islabel
-            for i = 1:size(isnumber,1)
-                islabel(i) = ~all(isnumber{i});
-            end
-            %assure that excel table is consistent
-            if ~(all(islabel) || all(~islabel))
-                error(['Please use consistent labeling of channels to '...
-                    'interpolate. It appears some are index and some are '...
-                    'label (e.g., "A17,64" instead of "A17,B32" or "17,64")']);
-            elseif all(islabel)
-                % if it's labels, find the indeces.
-                clear out
-                for i = 1:length(interp_chans)
-                    out(i) = find(strcmp(interp_chans{i},{EEG.chanlocs.labels}));
-                end
-            elseif all(~islabel)
-                clear out
-                for i = 1:length(interp_chans)
-                    out(i) = str2num(interp_chans{i});
-                end
-            end
-            interp_chans = out;
-        end
-    end
-    
-    %run actual interpolation
-    if isempty(interp_chans) | isnan(interp_chans)
-        fprintf('No channels to interpolate.\n')
-    elseif CFG.do_interp
-        str = sprintf('%d ', interp_chans);
-        fprintf('Interpolating channel(S): %s\n', str);
-        EEG = eeg_interp(EEG, interp_chans);
-        if CFG.keep_continuous
-            fprintf('Interpolating channel(S) for CONTEEG: %s\n', str);
-            CONTEEG = eeg_interp(CONTEEG, interp_chans);
-        end
-    end
+[EEG] = elektro_channelinterpolater(EEG, CFG, isub, EP, who_idx);
     
     %% --------------------------------------------------------------------
     % Run multiple algorithms to get a good selection of artifacts
@@ -336,7 +264,7 @@ for isub = 1:length(who_idx)
             % ---------------------------------------------------------------------
             %  Execute interpolation and rejection
             % ---------------------------------------------------------------------
-            EEG = pop_selectiveinterp(EEG,badChnXtrl);
+            EEG = pop_selectiveinterp(EEG, badChnXtrl);
             [EEG, com] = pop_rejepoch(EEG, trials_to_delete, 1);
             EEG = eegh(com,EEG);
         end
