@@ -1,22 +1,27 @@
 function prep03_runICA(EP)
-
+% THIS FUNCTION NEEDS DOCUMENTATION
+% (c) Niko Busch & Wanja Mössing 
+% (contact: niko.busch@gmail.com; w.a.moessing@gmail.com)
+%
+%  This program is free software: you can redistribute it and/or modify
+%  it under the terms of the GNU General Public License as published by
+%  the Free Software Foundation, either version 3 of the License, or
+%  (at your option) any later version.
+%
+%  This program is distributed in the hope that it will be useful,
+%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  GNU General Public License for more details.
+%
+%  You should have received a copy of the GNU General Public License
+%  along with this program. If not, see <http://www.gnu.org/licenses/>.
 [cfg_dir, cfg_name, ~] = fileparts(EP.cfg_file);
-[sub_dir, sub_name, ~] = fileparts(EP.cfg_file);
-
-addpath(sub_dir);
 addpath(cfg_dir);
-
 EP.S = readtable(EP.st_file);
-
 who_idx = get_subjects(EP);
-
-for isub=1:length(who_idx)
-    % Load CFG file. I know, eval is evil, but this way we allow the user
-    % to give the CFG function any arbitrary name, as defined in the EP
-    % struct.
-    evalstring = ['ALLCFG{',num2str(isub),'} = ' cfg_name '(' num2str(who_idx(isub)) ', EP.S);'];
-    eval(evalstring);
-end
+elektro_status('optimizing training data and running ICA');
+cfg_fun = str2func(cfg_name);
+ALLCFG = arrayfun(@(x) cfg_fun(x, EP.S), who_idx, 'uni', 0);
 
 % note, binica does not internally work multithreaded. Therefore, it makes
 % sense to parallelize this process across subjects. However, these things
@@ -107,6 +112,8 @@ for isub = 1:length(who_idx)
         % sac = pop_rmbase(sac,[], []);
         % instead of sac = pop_rmbase(sac,[]);
         
+        % retin information on rank reduction
+        EEG.etc = nonhpEEG.etc;
     end
     % --------------------------------------------------------------
     % Check how many components to extract and then run ICA. We need a

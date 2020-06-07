@@ -46,6 +46,7 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Import Biosemi raw data.
     % --------------------------------------------------------------
+    elektro_status('Importing rawdata');
     bdfname = [CFG.dir_raw CFG.subject_name '.bdf'];
     if ~exist(bdfname,'file')
         error('%s Does not exist!\n', bdfname)
@@ -58,7 +59,7 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Preprocessing (filtering etc.).
     % --------------------------------------------------------------
-    [EEG, CONTEEG] = func_prepareEEG(EEG, CFG, EP, who_idx(isub));
+    [EEG, EP, CONTEEG] = func_prepareEEG(EEG, CFG, EP, who_idx(isub));
     
     
     % --------------------------------------------------------------
@@ -74,8 +75,9 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Save data.
     % --------------------------------------------------------------
+    elektro_status('saving result');
     % Convert back to single precision.
-    if cfg.keep_continuous
+    if CFG.keep_continuous
         CONTEEG.data = single(CONTEEG.data);
         [CONTEEG, com] = pop_editset(CONTEEG, 'setname', [CFG.subject_name ' importCONT']);
         CONTEEG = eegh(com, CONTEEG);
@@ -89,11 +91,6 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % write info to spreadsheet
     % --------------------------------------------------------------
-    fid = fopen([CFG.dir_eeg, 'badlatency.txt']);
-    val = fscanf(fid, '%i');
-    fclose(fid);
-    delete([CFG.dir_eeg, 'badlatency.txt']);
-    EP.S.N_BadLatencyRejections(who_idx(isub)) = val;
     EP.S.has_import(who_idx(isub)) = 1;
     writetable(EP.S, EP.st_file);
 end
@@ -103,8 +100,7 @@ end
 
 %% subfunction
 function [] = print_quality_plots(CFG)
-disp(['Creating a postscript file with plots of Cleanline and/or ',...
-    'Eyelink-coregistration quality...']);
+elektro_status('printing quality plots to postscript');
 if exist([CFG.dir_eeg CFG.subject_name '_QualityPlots' '.ps'],'file')
     fprintf('Found an old version of ''%s''. Will overwrite it now.\n',...
         [CFG.subject_name '_QualityPlots' '.ps']);

@@ -119,7 +119,8 @@ end
 
 %% subfunctions
 function [CFG, P] = process_input_set_defaults(P, isub, who_idx, EP)
-CFG = eval(sprintf('%s(%i, EP.S)', P.cfg_name, who_idx(isub)));
+cfg_fun = str2func(P.cfg_name);
+CFG = cfg_fun(who_idx(isub), EP.S);
 
 % Write a status message to the command line.
 fprintf('\nNow working on file %s, (Nr %d of %d to process).\n\n',...

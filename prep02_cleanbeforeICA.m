@@ -1,13 +1,24 @@
-% This script is used for automatic artifact rejection.
+% This script is used for automatic artifact rejection prior to ICA.
 %
-% Unfortunately, we have to run this process as a script, because the
-% rejection functions do not work from within a function due to the strange
-% and intransparent inner workings of eeglab.
+% Note: pop_eegplot cannot be meaninfully used to select artefactual
+% components from within a function. Therefore, prep02 needs to be a script
+% until eeg_browser can fully replace eegplot.
 %
-% Note that the script requires that you have a running instance of eeglab.
-% Open eeglab using
-% [ALLEEG EEG CURRENTSET ALLCOM] = eeglab('nogui');
-% Wanja Moessing, WWU M�nster, moessing@wwu.de
+% (c) Niko Busch & Wanja Mössing 
+% (contact: niko.busch@gmail.com; w.a.moessing@gmail.com)
+%
+%  This program is free software: you can redistribute it and/or modify
+%  it under the terms of the GNU General Public License as published by
+%  the Free Software Foundation, either version 3 of the License, or
+%  (at your option) any later version.
+%
+%  This program is distributed in the hope that it will be useful,
+%  but WITHOUT ANY WARRANTY; without even the implied warranty of
+%  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%  GNU General Public License for more details.
+%
+%  You should have received a copy of the GNU General Public License
+%  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 %% get configuration
 [cfg_dir, cfg_name, ~] = fileparts(EP.cfg_file);
@@ -19,16 +30,14 @@ addpath(cfg_dir);
 EP.S = readtable(EP.st_file);
 
 who_idx = get_subjects(EP);
+cfg_fun = str2func(cfg_name);
+elektro_status('Detecting artifacts');
 
 
 %% loop over subjects and reject artifacts
 for isub = 1:length(who_idx)
-    
-    % Load CFG file. I know, eval is evil, but this way we allow the user
-    % to give the CFG function any arbitrary name, as defined in the EP
-    % struct.
-    evalstring = ['CFG = ' cfg_name '(' num2str(who_idx(isub)) ', EP.S);'];
-    eval(evalstring);
+    % get subject's config
+    CFG = cfg_fun(who_idx(isub), EP.S);
 
     % Write a status message to the command line.
     fprintf('\nNow working on subject %s, (number %d of %d to process).\n\n', ...
@@ -37,6 +46,36 @@ for isub = 1:length(who_idx)
     % ---------------------------------------------------------------------
     % Load data set.
     % ---------------------------------------------------------------------
+    if ~any([CFG.do_rej_thresh, CFG.do_rej_trend, CFG.do_rej_trend,...
+            CFG.do_rej_prob, CFG.do_rej_kurt])
+        disp(['No artifact detection configured, creating symbolic links',...
+            ' of prep01 files to save time and memory.']);
+        ln_pat = ['ln -s ',...
+            fullfile(CFG.dir_eeg, [CFG.subject_name, '_import%s.%s ']),...
+            fullfile(CFG.dir_eeg, [CFG.subject_name, '_CleanBeforeICA%s.%s'])];
+        exis_pat = fullfile(CFG.dir_eeg, [CFG.subject_name, '_CleanBeforeICA%s.%s']);
+        f_x = {'', '', 'CONT', 'CONT'};
+        f_y = {'set', 'fdt', 'set', 'fdt'};
+        f_exists = cellfun(@(x, y) exist(sprintf(exis_pat, x, y), 'file'),...
+            f_x, f_y);
+        if isunix
+            for i_ex_f = find(f_exists == 2)
+                delete(sprintf(exis_pat, f_x{i_ex_f}, f_y{i_ex_f}));
+            end
+            system(sprintf(ln_pat, '', 'set', '', 'set'));
+            system(sprintf(ln_pat, '', 'fdt', '', 'fdt'));
+            if CFG.keep_continuous
+                system(sprintf(ln_pat, 'CONT', 'set', 'CONT', 'set'));
+                system(sprintf(ln_pat, 'CONT', 'fdt', 'CONT', 'fdt'));
+            end
+            return
+        else
+           error(['Linux only! If you really must run this on Windows and'...
+               ' don''t want to reject artifact with prep02,\nconsider '...
+               'renaming prep01 files for prep03']);
+        end
+    end
+    
     EEG = pop_loadset('filename', [CFG.subject_name '_import.set'] , ...
         'filepath', CFG.dir_eeg, 'loadmode', 'all');
     
@@ -57,7 +96,7 @@ for isub = 1:length(who_idx)
     % proper indeces
     UsedChans = CFG.data_chans;
     if CFG.ignore_interp_chans
-        UsedChans = setdiff(UsedChans,interp_chans);
+        UsedChans = setdiff(UsedChans, interp_chans);
     end
     if strcmp(CFG.preproc_reference, 'robust') & CFG.do_preproc_reref
         % exclude the artificial robust reference channel and those
@@ -191,11 +230,11 @@ for isub = 1:length(who_idx)
             col{ichan} = [0.2588 0.9569 0.5961]; %"lime"
         end
         
-        
         %EOG
         for ichan=find(ismember({EEG.chanlocs.labels},{'VEOG', 'HEOG'}))
             col{ichan} = [1 0.0784314 0.576471]; %"deeppink"
         end
+        
         %Eye
         for ichan=find(ismember({EEG.chanlocs.labels},...
                 {'Eyegaze_X', 'Eyegaze_Y', 'Pupil_Dilation',...

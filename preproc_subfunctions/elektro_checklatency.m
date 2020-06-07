@@ -1,4 +1,4 @@
-function [EEG, CONTEEG] = elektro_checklatency(EEG, cfg, CONTEEG)
+function [EEG, EP, CONTEEG] = elektro_checklatency(EEG, cfg, id_idx, EP, CONTEEG)
 %
 % wm: THIS FUNCTION STILL NEEDS A PROPER DOCUMENTATION!
 
@@ -19,6 +19,7 @@ function [EEG, CONTEEG] = elektro_checklatency(EEG, cfg, CONTEEG)
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 if ~isempty(cfg.checklatency)
+    elektro_status('checking trigger latencies');
     %find all latencies
     badtrls = [];
     tridx = 0;
@@ -67,7 +68,13 @@ if ~isempty(cfg.checklatency)
     fid = fopen([cfg.dir_eeg,filesep,'badlatency.txt'],'a');
     fprintf(fid,num2str(length(EEG.latencyBasedRejection)));
     fclose(fid);
+    EP.S.N_BadLatencyRejections(id_idx) = val;
+    
+    
+    
     set(0,'DefaultFigureVisible','off');
+    
+    
     
     % in case we're using the unfold-pipe, deleting epochs is useless. But
     % we want to keep the latencies of those trials, to later interpolate

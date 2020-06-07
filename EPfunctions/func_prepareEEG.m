@@ -1,4 +1,4 @@
-function [EEG, CONTEEG] = func_prepareEEG(EEG, cfg, EP, id_idx)
+function [EEG, EP, CONTEEG] = func_prepareEEG(EEG, cfg, EP, id_idx)
 %
 % wm: THIS FUNCTION STILL NEEDS A PROPER DOCUMENTATION!
 
@@ -86,7 +86,7 @@ EEG = elektro_importEye(EEG, cfg);
 %---------------------------------------------------------------
 % check latencies of specific triggers within epochs
 %---------------------------------------------------------------
-[EEG, CONTEEG] = elektro_checklatency(EEG, cfg, CONTEEG);
+[EEG, EP, CONTEEG] = elektro_checklatency(EEG, cfg, id_idx, EP, CONTEEG);
 
 % --------------------------------------------------------------
 % Remove 50Hz line noise using Tim Mullen's cleanline.

@@ -17,6 +17,8 @@ function [EEG] = elektro_layoutprep(EEG, cfg)
 %  You should have received a copy of the GNU General Public License
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+elektro_status('importing layout and constructing EOG channels');
+
 [EEG, com] = pop_select(EEG, 'channel', cfg.data_urchans);
 EEG = eegh(com, EEG);
 

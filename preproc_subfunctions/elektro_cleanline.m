@@ -19,6 +19,7 @@ function [EEG, CONTEEG] = elektro_cleanline(EEG, cfg, CONTEEG)
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
 if cfg.do_cleanline
+    elektro_status('running cleanline');
     disp('Running cleanline algorithm for segmented data (PREP version)...');
     % FFT before cleanline
     % select 2 random channels for visualization

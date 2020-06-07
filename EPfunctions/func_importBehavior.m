@@ -25,6 +25,7 @@ function [EEG, CONTEEG] = func_importBehavior(EEG, cfg, CONTEEG)
 % triggers with the corresponding information in the behavioral data to
 % find out which information about which trials to merge.
 
+elektro_status('coregistering behavioral data')
 
 % Load the logfile.
 load([cfg.dir_behavior cfg.subject_name '_Logfile.mat']);
@@ -76,6 +77,7 @@ outfields = fieldnames(Trials);
 % assumption is that each epoch of the EEG data set corresponds to one
 % trial in the logfile and the first trials in both data structures
 % correspond to the same trial!
+nowarn_finames = {};
 for ievent = 1:length(EEG.event)
     
     thisepoch = EEG.event(ievent).epoch;
@@ -98,9 +100,19 @@ for ievent = 1:length(EEG.event)
         end
         if isempty(new_event_value)
             fillvalue = 666;
-            fprintf('Empty event field found on trial %d in event field %s!\n',...
-                thisepoch, outfields{ifield});
-            fprintf('Filling this field with arbitrary value of %d\n', fillvalue)
+            if ~ismember(outfields{ifield}, nowarn_finames)
+                fprintf('Empty event field found on trial %d in event field %s!\n',...
+                    thisepoch, outfields{ifield});
+                fprintf('Filling this field with arbitrary value of %d\n', fillvalue);
+                n_affected = sum(cellfun(@isempty, {Trials.(outfields{ifield})}));
+                if n_affected > 1
+                    prct_affected = n_affected / length(Trials) * 100;
+                    fprintf(['Only informing you once, though this is the '...
+                        'case for %.1f%% of trials (%i trials in total).\n'],...
+                        prct_affected, n_affected);
+                    nowarn_finames = [nowarn_finames, outfields(ifield)];
+                end
+            end
             new_event_value = fillvalue;
         end
         EEG.event(ievent).(outfields{ifield}) = new_event_value;

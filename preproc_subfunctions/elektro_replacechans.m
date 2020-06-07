@@ -17,6 +17,8 @@ function [EEG] = elektro_replacechans(EEG, EP, id_idx)
 %  You should have received a copy of the GNU General Public License
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+elektro_status('Replacing replugged channels');
+
 channels_need_replacement = true;
 try % will fail for cells (i.e., when some IDs need replacement but not this one)
     if isempty(EP.S.replace_chans(id_idx)) || isnan(EP.S.replace_chans(id_idx))

@@ -17,6 +17,8 @@ function [EEG] = elektro_prepfilter(EEG, cfg)
 %  You should have received a copy of the GNU General Public License
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+elektro_status('Filtering continuous data');
+
 if cfg.do_lp_filter
     [m, ~] = pop_firwsord('blackman', EEG.srate, cfg.lp_filter_tbandwidth);
     [EEG, com] = pop_firws(EEG, 'fcutoff', cfg.lp_filter_limit, 'ftype',...

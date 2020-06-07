@@ -17,6 +17,9 @@ function [EEG, CONTEEG] = elektro_epoch(EEG, cfg, CONTEEG)
 %
 %  You should have received a copy of the GNU General Public License
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+elektro_status('epoching data');
+
 if cfg.keep_continuous
     CONTEEG = EEG;
 end

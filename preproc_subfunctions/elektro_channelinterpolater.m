@@ -21,7 +21,7 @@ function [EEG] = elektro_channelinterpolater(EEG, cfg, EP, id_idx)
 %  You should have received a copy of the GNU General Public License
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-
+elektro_status('Interpolating bad channels');
 
 %% set defaults
 if ~isfield(cfg, 'interp_these')
@@ -37,6 +37,7 @@ spread = check_spread(EEG, EP, id_idx, cfg);
 
 %% Abort if interpolation turned off
 if ~cfg.do_interp
+    disp('configured not to interpolate channels.')
     return
 end
 

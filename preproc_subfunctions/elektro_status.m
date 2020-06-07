@@ -1,4 +1,4 @@
-function [EEG] = elektro_cleanrawdata(EEG, CFG)
+function [] = elektro_status(msg)
 %
 % wm: THIS FUNCTION STILL NEEDS A PROPER DOCUMENTATION!
 
@@ -18,21 +18,9 @@ function [EEG] = elektro_cleanrawdata(EEG, CFG)
 %  You should have received a copy of the GNU General Public License
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-elektro_status('Running clean_rawdata artifact removal');
 
-if CFG.rej_cleanrawdata
-    EEG = clean_artifacts(EEG, CFG.rej_cleanrawdata_args{:});
-    com = sprintf('EEG = clean_artifacts(EEG, %s)',...
-        cell2com(CFG.rej_cleanrawdata_args));
-    EEG = eegh(com, EEG); 
-    EEG.etc.elektro.cleanrawdata.interp_chans = ...
-        {EEG.chanlocs(~EEG.etc.clean_channel_mask).labels};
-end
+fprintf(['\n\n\n', repmat('%', 1, 80), '\n',...
+    'Elektro-Status: %s\n',...
+    repmat('%', 1, 80), '\n\n'], msg);
 end
 
-function [com] = cell2com(X)
-com = cellfun(@(x) fastif(isnumeric(x) & length(x) > 1,...
-    ['[' num2str(x) ']'], fastif(isnumeric(x), num2str(x),['''' x ''''])),...
-    X, 'Uni', 0);
-com = strjoin(com, ', ');
-end

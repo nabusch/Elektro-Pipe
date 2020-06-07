@@ -18,6 +18,8 @@ function [EEG] = elektro_preprocref(EEG, cfg, EP, id_idx)
 %  You should have received a copy of the GNU General Public License
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+elektro_status('Applying a preprocessing reference');
+
 if cfg.do_preproc_reref
     %robust average (requires PREP extension)
     if strcmp(cfg.preproc_reference, 'robust')
