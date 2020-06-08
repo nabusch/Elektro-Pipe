@@ -180,6 +180,8 @@ CFG.ignore_interp_chans = 1;
 % opposed to all other cleaning methods.
 CFG.rej_cleanrawdata = 0;
 CFG.rej_cleanrawdata_args = {}; %varargin passed to clean_artifacts(), "tuning should be the exception"
+CFG.rej_cleanrawdata_interp = true; % interpolate bad channels that have been removed by cleanrawdata?
+
 % set all the CFG.do_rej_* to 0 to deactivate automatic artifact
 % detection/rejection in prep02.
 

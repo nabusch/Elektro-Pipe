@@ -21,12 +21,18 @@ function [EEG] = elektro_cleanrawdata(EEG, CFG)
 elektro_status('Running clean_rawdata artifact removal');
 
 if CFG.rej_cleanrawdata
+    dirtyEEG = EEG;
     EEG = clean_artifacts(EEG, CFG.rej_cleanrawdata_args{:});
     com = sprintf('EEG = clean_artifacts(EEG, %s)',...
         cell2com(CFG.rej_cleanrawdata_args));
     EEG = eegh(com, EEG); 
     EEG.etc.elektro.cleanrawdata.interp_chans = ...
-        {EEG.chanlocs(~EEG.etc.clean_channel_mask).labels};
+        {dirtyEEG.chanlocs(~EEG.etc.clean_channel_mask).labels};
+    
+    % if desired, interpolate the removed channels
+    if CFG.rej_cleanrawdata_interp
+        EEG = pop_interp(EEG, dirtyEEG.chanlocs, 'spherical');
+    end
 end
 end
 
