@@ -275,10 +275,10 @@ if CFG.do_eyetrack_ica
     
     % make all latencies integers to avoid index warning in
     % geticavariance.m
-    if all(arrayfun(@isscalar, [EEG.event.latency]))
-        tmp = cellfun(@int64, {EEG.event.latency}, 'UniformOutput', 0);
-        [EEG.event.latency] = tmp{:};
-    end
+%     if all(arrayfun(@isscalar, [EEG.event.latency]))
+%         tmp = cellfun(@int64, {EEG.event.latency}, 'UniformOutput', 0);
+%         [EEG.event.latency] = tmp{:};
+%     end
     
     % make sure field gcompreject exists so eyetrackerica integrates old
     % and new IC detections
