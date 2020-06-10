@@ -112,11 +112,16 @@ CFG.veog_chans = [42 65];
 % provide the full path and filename.
 CFG.chanlocfile = 'Custom_M34_V3_Easycap_Layout_EEGlab.sfp';%standard-10-5-cap385.elp'; %This is EEGLAB's standard lookup table.
 
+% Import reference: Biosemi raw data are reference free. Add any
+% reference directly after import, (e.g., a mastoid or other channel). 
+% Otherwise the data will lose 40 dB of SNR! You can simply re-reference
+% later. Leave empty to use average of data_chans (recommended).
+CFG.import_reference    = []; %A16 & B32 are the mastoids in M34 layout.
 % Do you want to rereference the data at the import step (recommended)?
 % Since Biosemi does not record with reference, this improves signal
 % quality. This does not need to be the postprocessing refrence you use for
 % subsequent analyses.
-CFG.do_preproc_reref    = 1;
+CFG.do_preproc_reref    = false;
 CFG.preproc_reference   = []; % (31=Pz@Biosemi,32=Pz@CustomM43Easycap);  'robust' for robust average. Requires PREP extension & fix in line 102 of performReference.m (interpoled -> interpolated; already filed as issue on github)
 % Files produced with the prep_* functions always store data with the
 % preproc ref. The functions called by the design_master rereference to the
@@ -124,8 +129,8 @@ CFG.preproc_reference   = []; % (31=Pz@Biosemi,32=Pz@CustomM43Easycap);  'robust
 CFG.postproc_reference  = 'keep'; % empty = average reference; for M34: 'A16' & 'B32' = Mastoids
 
 % Do you want to have a new sampling rate?
-CFG.do_resampling     = 1;
-CFG.new_sampling_rate = 512;
+CFG.do_resampling     = false;
+CFG.new_sampling_rate = [];
 
 % Do you want to high-pass filter the data?
 % You can optionally choose to apply an extreme high-pass filter to
@@ -139,7 +144,7 @@ CFG.hp_filter_pbripple = 0.01;% only used for kaiser
 
 % Do you want to low-pass filter the data?
 CFG.do_lp_filter = 1;
-CFG.lp_filter_limit = 100; 
+CFG.lp_filter_limit = 45; 
 CFG.lp_filter_tbandwidth = 5;
 
 % Do you want to notch-filter the data? (Cleanline should be sufficient in most cases)
@@ -148,7 +153,7 @@ CFG.notch_filter_lower = 49;
 CFG.notch_filter_upper = 51;
 
 % Do you want to use cleanline to remove 50Hz noise?
-CFG.do_cleanline = 1;
+CFG.do_cleanline = 0;
 
 % Do you want to use linear detrending (requires Andreas Widmann's
 % function).?
@@ -177,10 +182,31 @@ CFG.ignore_interp_chans = 1;
 % NOTE: EEGlab now ships with the fully automagic clean rawdata plugin as 
 % the default artifact removal method. You can opt to use this method. As 
 % it cleans the *raw*data, this obviously needs to happen in prep01, as 
-% opposed to all other cleaning methods.
-CFG.rej_cleanrawdata = 0;
-CFG.rej_cleanrawdata_args = {}; %varargin passed to clean_artifacts(), "tuning should be the exception"
+% opposed to all other cleaning methods. Note that, by default, this
+% includes a 0.5Hz high-pass filter (kaiser FIR, can be changed in args,
+% see clean_drifts() & clean_artifacts()). If using clean_rawdata, this
+% filter should always be prefered over the regular filter implementation.
+% Note that they call it "raw"data, but several tutorials recommend first
+% cleaning line noise (via cleanline algo) and filtering. That's the way
+% it's implemented in Elektro-Pipe now: Cleanline -> filter -> clean_rawdata. 
+% Clean_rawdata internally performs a reconstruction of the artifact
+% subspace ("ASR"; https://doi.org/10.1109/tbme.2015.2481482) based on PCA.
+% ASR + ICA = supposed to be good (). Generally, I found Makoto's
+% Preprocessing pipeline linking to most relevant information on ASR. In
+% general, this happens:
+% 1. High-pass filter to remove drifts
+% 2. Remove channels that are flat for more than 5s
+% 3. Remove channels that are noisy (i.e., low correlation with adjacent channels)
+% 4. Find the cleanest part of data (see algo in publication), use this as reference.
+% 5. Using a moving window, compute PCA and compare window's PCs to reference signal
+% 6. Remove PCs that are more than N SD's away from reference and reconstruct them (8 default, 20 "lax" criterion)
+% 7. slide again, to detect windows that could not be repaired.
+% 8. remove these windows (CAREFUL: this might crash behavioral/eyetrack coregistration (if relevant events are deleted)! Therefore defaults to 1 ~ "off").
+CFG.rej_cleanrawdata = 1;
+CFG.rej_cleanrawdata_args = {'WindowCriterion', 'off',...
+    'LineNoiseCriterion', 'off', 'ChannelCriterion', 0.75, 'MaxMem', 64000}; %varargin passed to clean_artifacts(), "tuning should be the exception"
 CFG.rej_cleanrawdata_interp = true; % interpolate bad channels that have been removed by cleanrawdata?
+CFG.rej_cleanrawdata_dont_interp = {'IO1'}; % correlation based measures dont make sense for some channels (e.g., IO1 will not be .85 correlated with scalp channels)
 
 % set all the CFG.do_rej_* to 0 to deactivate automatic artifact
 % detection/rejection in prep02.
@@ -286,11 +312,11 @@ CFG.eyetracker_ica_feedback  = 4; % do you want to see plots of (1) all selected
 CFG.do_iclabel_ica = true;
 % what types of ICs do you want to remove? Options are:
 % 'Brain', 'Muscle', 'Eye', 'Heart', 'Line Noise', 'Channel Noise', 'Other'
-CFG.iclabel_rm_ICtypes = {'Eye', 'Heart', 'Line Noise', 'Channel Noise', 'Muscle'};
+CFG.iclabel_rm_ICtypes = {'Eye','Muscle'};
 % minimum classification accuracy to believe an ICs assigned label is true.
 % Can be a vector with one accuracy per category or a single value for all
 % categories.
-CFG.iclabel_min_acc = .7;
+CFG.iclabel_min_acc = .9; %50% is not chance, but seems realistic based on inspectio
 
 % select components based on correlation with EOG? 
 CFG.do_corr_ica = false;
@@ -349,5 +375,6 @@ CFG.single.fft_time  = [];%[1, 3];
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%Assertion checks for incompatible configurations
 assert(~(CFG.do_eyetrack_ica & CFG.do_resampling));
-assert(~(CFG.rej_cleanrawdata & CFG.do_interp));
+assert(~(CFG.rej_cleanrawdata & ...
+    (CFG.do_interp & ~all(strcmp(CFG.interp_these, 'spread')))));
 end

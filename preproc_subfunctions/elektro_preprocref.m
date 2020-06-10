@@ -22,13 +22,6 @@ elektro_status('Applying a preprocessing reference');
 
 if cfg.do_preproc_reref
     
-    % add zero-filled channel to avoid rank deficiency
-    % see https://sccn.ucsd.edu/wiki/Makoto%27s_preprocessing_pipeline#Why_should_we_add_zero-filled_channel_before_average_referencing.3F_.2803.2F04.2F2020_Updated.29
-    EEG.nbchan = EEG.nbchan+1;
-    EEG.data(end + 1,:) = zeros(1, EEG.pnts);
-    EEG.chanlocs(1, EEG.nbchan).labels = 'initialReference';
-    
-    
     %robust average (requires PREP extension)
     if strcmp(cfg.preproc_reference, 'robust')
         %%settings for robust average reference
@@ -65,11 +58,20 @@ if cfg.do_preproc_reref
             'exclude', cfg.data_chans(end)+1:EEG.nbchan-2);
     else
         % normal reference
-        [EEG, com] = pop_reref( EEG, cfg.preproc_reference, ...
-            'keepref','on', ...
-            'exclude', cfg.data_chans(end)+1:EEG.nbchan-1);
+        if ~isempty(cfg.preproc_reference) & length(cfg.preproc_reference) == 1
+            excl = find(~ismember(1:EEG.nbchan, cfg.data_chans));
+            [EEG, com] = pop_reref( EEG, cfg.preproc_reference, ...
+                'keepref','on', ...
+                'exclude', excl);
+        else % more than one channel: need to add refchan to retain rank
+            EEG.nbchan = EEG.nbchan+1;
+            EEG.data(end + 1,:) = zeros(1, EEG.pnts);
+            EEG.chanlocs(1, EEG.nbchan).labels = 'initialReference';
+            excl = find(~ismember(1:EEG.nbchan - 1, cfg.data_chans)); % -1 to not exclude "initialReference"
+            [EEG, com] = pop_reref(EEG, cfg.preproc_reference,...
+                'keepref', 'on', 'exclude', excl);
+            EEG = pop_select(EEG, 'nochannel', {'initialReference'});
+        end
     end
     EEG = eegh(com, EEG);
-else
-    disp('No rereferencing after import.')
 end

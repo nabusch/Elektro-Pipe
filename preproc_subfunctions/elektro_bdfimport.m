@@ -1,8 +1,8 @@
-function [EEG] = elektro_layoutprep(EEG, cfg)
-%
+function [EEG] = elektro_bdfimport(CFG)
 % wm: THIS FUNCTION STILL NEEDS A PROPER DOCUMENTATION!
-
-% (c) Niko Busch & Wanja Mössing (contact: niko.busch@gmail.com)
+%
+% (c) Niko Busch & Wanja Mössing
+% (contact: niko.busch@gmail.com, w.a.moessing@gmail.com)
 %
 %  This program is free software: you can redistribute it and/or modify
 %  it under the terms of the GNU General Public License as published by
@@ -17,12 +17,14 @@ function [EEG] = elektro_layoutprep(EEG, cfg)
 %  You should have received a copy of the GNU General Public License
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
-elektro_status('importing layout and constructing EOG channels');
+elektro_status('Importing rawdata');
+bdfname = [CFG.dir_raw CFG.subject_name '.bdf'];
+if ~exist(bdfname,'file')
+    error('%s Does not exist!\n', bdfname)
+else
+    fprintf('Importing %s\n', bdfname)
+    [EEG, com] = pop_fileio(bdfname);
+    EEG = eegh(com, EEG);
+end
 
-[EEG, com] = pop_select(EEG, 'channel', cfg.data_urchans);
-EEG = eegh(com, EEG);
-
-
-[EEG, ~, ~, com] = pop_chanedit(EEG, 'lookup', cfg.chanlocfile);
-EEG = eegh(com, EEG);
 end

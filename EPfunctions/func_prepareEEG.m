@@ -37,9 +37,24 @@ EEG = elektro_replacechans(EEG, EP, id_idx);
 EEG = elektro_layoutprep(EEG, cfg);
 
 % --------------------------------------------------------------
-% Use the fully automatic clean rawdata algorithm
+% Apply import reference
 % --------------------------------------------------------------
-EEG = elektro_cleanrawdata(EEG, cfg);
+[EEG] = elektro_importref(EEG, cfg);
+
+% --------------------------------------------------------------
+% Remove 50Hz line noise using Tim Mullen's cleanline.
+% --------------------------------------------------------------
+[~, EEG] = elektro_cleanline([], cfg, EEG, true);
+
+% --------------------------------------------------------------
+% Filter the data.
+% --------------------------------------------------------------
+EEG = elektro_prepfilter(EEG, cfg);
+
+% --------------------------------------------------------------
+% Use the clean rawdata algorithm
+% --------------------------------------------------------------
+[EEG, EP] = elektro_cleanrawdata(EEG, cfg, EP, id_idx);
 
 % --------------------------------------------------------------
 % Interpolate bad channels
@@ -47,9 +62,9 @@ EEG = elektro_cleanrawdata(EEG, cfg);
 EEG = elektro_channelinterpolater(EEG, cfg, EP, id_idx);
 
 % --------------------------------------------------------------
-% Filter the data.
+% Compute HEOG & VEOG
 % --------------------------------------------------------------
-EEG = elektro_prepfilter(EEG, cfg);
+[EEG] = elektro_computeEOG(EEG, cfg);
 
 % --------------------------------------------------------------
 % Downsample data.
@@ -60,7 +75,7 @@ if ~isempty(cfg.new_sampling_rate)
 end
 
 % --------------------------------------------------------------
-% Apply reference
+% Apply preproc reference
 % --------------------------------------------------------------
 EEG = elektro_preprocref(EEG, cfg, EP, id_idx);
 
@@ -87,11 +102,6 @@ EEG = elektro_importEye(EEG, cfg);
 % check latencies of specific triggers within epochs
 %---------------------------------------------------------------
 [EEG, EP, CONTEEG] = elektro_checklatency(EEG, cfg, id_idx, EP, CONTEEG);
-
-% --------------------------------------------------------------
-% Remove 50Hz line noise using Tim Mullen's cleanline.
-% --------------------------------------------------------------
-[EEG, CONTEEG] = elektro_cleanline(EEG, cfg, CONTEEG);
 
 % --------------------------------------------------------------
 % Detrend the data.

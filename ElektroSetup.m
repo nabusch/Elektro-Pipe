@@ -295,7 +295,8 @@ end
 cd(URDIR);
 h= msgbox(['Done! You can find a ElektroReadMe.txt file in your new',...
     ' project folder (if you created one). Read it carefully to get',...
-    ' a few specials.'], 'ElektroSetup');
+    ' a few specials. Run elektro_prepconfigure to be guided through',...
+    ' the creation of a config file for the preprocessing.'], 'ElektroSetup');
 end
 
 

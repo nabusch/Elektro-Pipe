@@ -45,6 +45,9 @@ end
 if any(ismember(cfg.interp_these, {'flat', 'noisy'}))
     disp('temporarily removing the non-scalp channels for bad channel detection');
     scalpEEG = pop_select(EEG, 'channel', cfg.data_chans);
+else
+    scalpEEG = struct();
+    scalpEEG.chanlocs = EEG.chanlocs(cfg.data_chans);
 end
 
 flat = check_flat(scalpEEG, cfg);
@@ -94,6 +97,8 @@ else
     fprintf('Interpolating channel(s): ''%s''\n', com);
     EEG = eeg_interp(EEG, find(ismember({EEG.chanlocs.labels}, bad_chans)));
     EEG.etc.elektro.interpolated_chans = bad_chans;
+    EP.S.elektro_interpolated_chans(id_idx) = {com};
+    EP.S.elektro_interpolater_N(id_idx) = length(bad_chans);
     com = sprintf('EEG = eeg_interp(EEG), {''%s''}', com);
     EEG = eegh(com, EEG);
 end

@@ -46,21 +46,12 @@ for isub = 1:length(who_idx)
     % --------------------------------------------------------------
     % Import Biosemi raw data.
     % --------------------------------------------------------------
-    elektro_status('Importing rawdata');
-    bdfname = [CFG.dir_raw CFG.subject_name '.bdf'];
-    if ~exist(bdfname,'file')
-        error('%s Does not exist!\n', bdfname)
-    else
-        fprintf('Importing %s\n', bdfname)
-        EEG = pop_fileio(bdfname);
-    end
-    
+    [EEG] = elektro_bdfimport(CFG);
     
     % --------------------------------------------------------------
     % Preprocessing (filtering etc.).
     % --------------------------------------------------------------
     [EEG, EP, CONTEEG] = func_prepareEEG(EEG, CFG, EP, who_idx(isub));
-    
     
     % --------------------------------------------------------------
     % Import behavioral data .

@@ -319,6 +319,8 @@ if CFG.do_iclabel_ica
             reason(comp) = icat;
         end
     end
+    fprintf('removing %i components (categories: %s)\n',...
+        sum(rej), strjoin(reason(~cellfun(@isempty, reason)), ', '));
     EEG = remember_old_ICs(EEG, rej);
 end
 end

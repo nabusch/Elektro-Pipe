@@ -22,17 +22,11 @@
 
 %% get configuration
 [cfg_dir, cfg_name, ~] = fileparts(EP.cfg_file);
-[sub_dir, sub_name, ~] = fileparts(EP.cfg_file);
-
-addpath(sub_dir);
 addpath(cfg_dir);
-
 EP.S = readtable(EP.st_file);
-
 who_idx = get_subjects(EP);
 cfg_fun = str2func(cfg_name);
 elektro_status('Detecting artifacts');
-
 
 %% loop over subjects and reject artifacts
 for isub = 1:length(who_idx)
@@ -68,7 +62,7 @@ for isub = 1:length(who_idx)
                 system(sprintf(ln_pat, 'CONT', 'set', 'CONT', 'set'));
                 system(sprintf(ln_pat, 'CONT', 'fdt', 'CONT', 'fdt'));
             end
-            return
+            continue
         else
            error(['Linux only! If you really must run this on Windows and'...
                ' don''t want to reject artifact with prep02,\nconsider '...

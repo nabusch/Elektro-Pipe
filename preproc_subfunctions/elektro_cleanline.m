@@ -1,6 +1,8 @@
-function [EEG, CONTEEG] = elektro_cleanline(EEG, cfg, CONTEEG)
+function [EEG, CONTEEG] = elektro_cleanline(EEG, cfg, CONTEEG, skip_epoch_eeg)
 %
 % wm: THIS FUNCTION STILL NEEDS A PROPER DOCUMENTATION!
+% skip_epoch_eeg = boolean, if true, will only process CONTEEG (use
+% anything as EEG input, will be returned as is)
 
 % (c) Niko Busch & Wanja Mössing
 % (contact: niko.busch@gmail.com, w.a.moessing@gmail.com)
@@ -18,37 +20,42 @@ function [EEG, CONTEEG] = elektro_cleanline(EEG, cfg, CONTEEG)
 %  You should have received a copy of the GNU General Public License
 %  along with this program. If not, see <http://www.gnu.org/licenses/>.
 
+if nargin < 4
+    skip_epoch_eeg = false;
+end
+
 if cfg.do_cleanline
-    elektro_status('running cleanline');
-    disp('Running cleanline algorithm for segmented data (PREP version)...');
-    % FFT before cleanline
-    % select 2 random channels for visualization
-    randchs = randsample(cfg.data_chans, 2);
-    set(0,'DefaultFigureVisible','off');
-    pop_fourieeg(EEG, randchs, [], 'EndFrequency', 100);
-    winlength = EEG.pnts / EEG.srate;
-    lineNoiseIn = struct('lineNoiseMethod', 'clean', ...
-        'lineNoiseChannels', cfg.data_chans,...
-        'Fs', EEG.srate, ...
-        'lineFrequencies', [50, 100],...
-        'p', 0.01, ...
-        'fScanBandWidth', 2, ...
-        'taperBandWidth', 2, ...
-        'taperWindowSize', winlength, ...
-        'taperWindowStep', winlength, ...
-        'tau', 100, ...
-        'pad', 2, ...
-        'fPassBand', [0 EEG.srate/2], ...
-        'maximumIterations', 10);
-    [EEG, ~] = cleanLineNoise(EEG, lineNoiseIn);
-    com = struct2com(lineNoiseIn);
-    com = sprintf('EEG = cleanLineNoise(EEG, %s)', com);
-    EEG = eegh(com, EEG);
-    
-    % FFT after cleanline
-    pop_fourieeg(EEG, randchs, [], 'EndFrequency', 100);
-    disp('cleanline done.')
-    
+    if ~skip_epoch_eeg
+        elektro_status('running cleanline');
+        disp('Running cleanline algorithm for segmented data (PREP version)...');
+        % FFT before cleanline
+        % select 2 random channels for visualization
+        randchs = randsample(cfg.data_chans, 2);
+        set(0,'DefaultFigureVisible','off');
+        pop_fourieeg(EEG, randchs, [], 'EndFrequency', 100);
+        winlength = EEG.pnts / EEG.srate;
+        lineNoiseIn = struct('lineNoiseMethod', 'clean', ...
+            'lineNoiseChannels', cfg.data_chans,...
+            'Fs', EEG.srate, ...
+            'lineFrequencies', [50, 100],...
+            'p', 0.01, ...
+            'fScanBandWidth', 2, ...
+            'taperBandWidth', 2, ...
+            'taperWindowSize', winlength, ...
+            'taperWindowStep', winlength, ...
+            'tau', 100, ...
+            'pad', 2, ...
+            'fPassBand', [0 EEG.srate/2], ...
+            'maximumIterations', 10);
+        [EEGclean, ~] = cleanLineNoise(EEG, lineNoiseIn);
+        com = struct2com(lineNoiseIn);
+        com = sprintf('EEG = cleanLineNoise(EEG, %s)', com);
+        EEG = eegh(com, EEG);
+        
+        % FFT after cleanline
+        pop_fourieeg(EEG, randchs, [], 'EndFrequency', 100);
+        disp('cleanline done.')
+    end
     if cfg.keep_continuous
         disp('Running cleanline algorithm for continuous data (PREP version)...');
         % FFT before cleanline
