@@ -96,7 +96,13 @@ if CFG.rej_cleanrawdata
     end
     % if desired, interpolate the removed channels
     if CFG.rej_cleanrawdata_interp
-        [EEG, com] = pop_interp(EEG, dirtyEEG.chanlocs, 'spherical');
+        % the com output of pop_interp is broken...
+        bad_chans = {dirtyEEG.chanlocs.labels};
+        good_chans = {EEG.chanlocs.labels};
+        bad_chans = bad_chans(~ismember(bad_chans, good_chans));
+        EEG = pop_interp(EEG, dirtyEEG.chanlocs, 'spherical');
+        com = strjoin(bad_chans, ''', ''');
+        com = sprintf('EEG = eeg_interp(EEG), {''%s''}', com);
         EEG = eegh(com, EEG);
     end
     
@@ -134,6 +140,7 @@ function [diaryfile] = keep_diary(CFG)
 % keep a temporary diary, so we can store the information cleanrawdata
 % prints to the command line
 diaryfile = fullfile(CFG.dir_eeg, 'prep01_cleanrawdatalog.txt');
+[~,~] = mkdir(CFG.dir_eeg);
 warning('off', 'MATLAB:DELETE:FileNotFound');
 delete(diaryfile);
 warning('on', 'MATLAB:DELETE:FileNotFound');
