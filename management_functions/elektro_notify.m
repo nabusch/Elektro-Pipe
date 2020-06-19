@@ -1,4 +1,4 @@
-function [] = elektro_notify(email, message, header)
+function [] = elektro_notify(email, message, header, rethro)
 %ELEKTRO_NOTIFY(email, message, header) sends an email to notify the user
 %   ELEKTRO_NOTIFY(email, message, header)
 %   
@@ -13,6 +13,8 @@ function [] = elektro_notify(email, message, header)
 %     'message': string, the message's content; Alternatively, you can pass
 %                a 'ME' struct, as produced by try...catch ME
 %     'header': string, the title of your mail (default: "Elektro-Notify")
+%     'rethro': if message is ME error struct, rethrow it after sending the
+%               message?
 %
 %   EXAMPLES:
 %     try
@@ -44,6 +46,8 @@ end
 
 if nargin < 2
     message = 'Have a nice day and enjoy Elektro-Pipe!';
+elseif isempty(message)
+    message = 'Have a nice day and enjoy Elektro-Pipe!';
 elseif ~(isa(message, 'MException') | ischar(message) | isa(message, 'string'))
     warning('message must be a MException (try... catch ME) or a string.')
     return
@@ -51,9 +55,15 @@ end
 
 if nargin < 3
     header = 'Elektro-notify';
+elseif isempty(header)
+    header = 'Elektro-notify';
 elseif ~(ischar(header))
     warning('header needs to be a string');
     return
+end
+
+if nargin < 4
+    rethrow = false;
 end
 
 %% check if message is a catch ME struct
@@ -86,6 +96,10 @@ if ispc || ~unixworked
         'E-mail to %s with title %s could not be sent.\nContent:\n%s',...
         '\n|||||||||||||||||||||||||||||||||||||||||||||||||||||\n'],...
         email, header, message);
+end
+
+if isa(message, 'MException') & rethro
+    rethrow(message);
 end
 
 end
