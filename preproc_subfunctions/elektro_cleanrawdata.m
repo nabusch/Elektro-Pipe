@@ -39,7 +39,7 @@ if CFG.rej_cleanrawdata
         subargs{end + 1} = 'off';
     end
     
-    %run algo
+    %run algo without ASR -- just channel detection
     FOO = clean_artifacts(dirtyEEG, subargs{:});
     
     %keep history

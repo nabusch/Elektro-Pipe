@@ -203,8 +203,7 @@ CFG.ignore_interp_chans = 1;
 % 7. slide again, to detect windows that could not be repaired.
 % 8. remove these windows (CAREFUL: this might crash behavioral/eyetrack coregistration (if relevant events are deleted)! Therefore defaults to 1 ~ "off").
 CFG.rej_cleanrawdata = 1;
-CFG.rej_cleanrawdata_args = {'WindowCriterion', 'off',...
-    'LineNoiseCriterion', 'off', 'ChannelCriterion', 0.75, 'MaxMem', 64000}; %varargin passed to clean_artifacts(), "tuning should be the exception"
+CFG.rej_cleanrawdata_args = {'WindowCriterion', 'off', 'LineNoiseCriterion', 'off', 'ChannelCriterion', 0.75, 'MaxMem', 64000}; %varargin passed to clean_artifacts(), "tuning should be the exception"
 CFG.rej_cleanrawdata_interp = true; % interpolate bad channels that have been removed by cleanrawdata?
 CFG.rej_cleanrawdata_dont_interp = {'IO1'}; % correlation based measures dont make sense for some channels (e.g., IO1 will not be .85 correlated with scalp channels)
 
