@@ -127,6 +127,12 @@ end
 % Coregister EEG & ET
 %----------------------------------------------
 fprintf('Now coregistrating EEG & Eyetracking...\n');
+fprintf(['Note: Indicated ET-sampling rate might be slightly lower if\n',...
+    'you''re importing a continuous recording with pauses.\n']);
+% this is a known issue in EYE-EEG. Sampling rate is estimated by using the
+% EEG as the master clock and then interpolating samples between the first
+% occurance of the first trigger and the last of the last trigger. This is
+% then obviously wrong if there are no sampling points for pauses.
 [EEG, com] = pop_importeyetracker(EEG, [cfg.dir_eye cfg.subject_name '.mat'],...
     cfg.eye_startEnd, 2:4, {'Eyegaze_X' 'Eyegaze_Y' 'Pupil_Dilation'}, 1,1,1,1);
 EEG = eegh(com, EEG);
