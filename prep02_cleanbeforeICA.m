@@ -30,6 +30,8 @@ elektro_status('Detecting artifacts');
 
 %% loop over subjects and reject artifacts
 for isub = 1:length(who_idx)
+    clear global eegrej
+    
     % get subject's config
     CFG = cfg_fun(who_idx(isub), EP.S);
 
@@ -88,6 +90,8 @@ for isub = 1:length(who_idx)
     
     % In case some channels should not be used for detection, extract the
     % proper indeces
+    [~, interp_chans] = elektro_chanlabeltransformer(...
+        EP.S.interp_chans(who_idx(isub)), EEG.chanlocs);
     UsedChans = CFG.data_chans;
     if CFG.ignore_interp_chans
         UsedChans = setdiff(UsedChans, interp_chans);
@@ -191,14 +195,14 @@ for isub = 1:length(who_idx)
     end
     
     %combine info for auto-removing epochs
+    finames = fieldnames(plotRej);
+    deleteme = zeros(1,EEG.trials);
+    for i = 1:length(finames)
+        tmp = eegplot2trial(plotRej.(finames{i}),...
+            EEG.pnts, EEG.trials);
+        deleteme = deleteme | tmp;
+    end
     if CFG.rej_auto
-        finames = fieldnames(plotRej);
-        deleteme = zeros(1,EEG.trials);
-        for i = 1:length(finames)
-            tmp = eegplot2trial(plotRej.(finames{i}),...
-                EEG.pnts, EEG.trials);
-            deleteme = deleteme | tmp;
-        end
         EEG = pop_rejepoch(EEG, deleteme, 0);
     end
     
@@ -279,6 +283,13 @@ for isub = 1:length(who_idx)
         disp('"Update marks", and hit "Continue" (or F5) in Matlab editor menu')
         keyboard
         
+        if isempty(eegrej)
+            waitfor(...
+                msgbox(['eegrej is empty. This means you likely clicked "x" or'...
+                ' used "close" to close the eegplot. Please hit "update marks"'...
+                ' instead. Otherwise, no trials will be rejected.']));
+        end
+        
         % eegplot2trial cannot deal with multi-rejection
         if ~isempty(eegrej)
             rejTime = eegrej(:,1:2);
@@ -287,11 +298,18 @@ for isub = 1:length(who_idx)
             
             [badtrls, badChnXtrl] = eegplot2trial(eegrej,EEG.pnts,length(EEG.epoch));
             trials_to_delete = find(badtrls);
-
+%             foo = find(deleteme);
+%             assert(isequal(trials_to_delete, foo), 'why does eeglab use global variables??') %debugger
             % ---------------------------------------------------------------------
             %  Execute interpolation and rejection
             % ---------------------------------------------------------------------
-            EEG = pop_selectiveinterp(EEG, badChnXtrl);
+%             EEG = pop_selectiveinterp(EEG, badChnXtrl);
+            % currently, the selective interpolation is nonsense. The
+            % rejepoch statement below simply deletes the affected trials
+            % anyways. Alternatively, one could remove the trials with
+            % to-be-interpolated channels from the vector of to-be-deleted
+            % trials. In that case, some trials that are generally bad but
+            % have a channel marked for interpolation will not be rejected.
             [EEG, com] = pop_rejepoch(EEG, trials_to_delete, 1);
             EEG = eegh(com,EEG);
         end
