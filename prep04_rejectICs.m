@@ -85,11 +85,25 @@ for isub = 1:length(who_idx)
     % only way of using pop_selectcomp without rewriting it...
     if CFG.ica_plot_ICs
         assignin('base', 'EEG', EEG);
-        EEG = mypop_selectcomps(EEG);
-        EEG.reject.gcompreject = evalin('base', 'EEG.reject.gcompreject');
+        [EEG] = mypop_selectcomps(EEG);
+    
+        % wait for decision
+        comp_handles = findobj('-regexp', 'tag', '^selcomp.*');
+        while true %
+            try
+                waitforbuttonpress
+            catch
+                if ~any(isgraphics(comp_handles))
+                    break
+                end
+            end
+        end
+        EEG.reject.gcompreject = evalin('base', 'ALLEEG(end).reject.gcompreject');
     end
     
     %% 09: reconstruct signal without ICs and store output
+    fprintf('Removing %i components (%s)', sum(EEG.reject.gcompreject),...
+        num2str(find(EEG.reject.gcompreject)));
     EEG = pop_subcomp(EEG, [], CFG.ica_ask_for_confirmation);
     
     if CFG.keep_continuous && strcmp(CFG.ica_rm_continuous, 'cont')
@@ -322,6 +336,8 @@ if CFG.do_iclabel_ica
     fprintf('removing %i components (categories: %s)\n',...
         sum(rej), strjoin(reason(~cellfun(@isempty, reason)), ', '));
     EEG = remember_old_ICs(EEG, rej);
+else
+    reason = [];
 end
 end
 
