@@ -54,6 +54,9 @@ end
 
 for idesign = 1:length(EP.design_idx)
     
+    erp = [];
+    ntrials = [];
+    
     %
     clear DINFO;
     thisdesign = EP.design_idx(idesign);
